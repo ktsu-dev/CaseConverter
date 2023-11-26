@@ -86,17 +86,7 @@ namespace ktsu.io.CaseConverter
 		{
 			ArgumentNullException.ThrowIfNull(input);
 
-			string output = input;
-			output = NonAlphaNumericRegex().Replace(output, " ");
-			output = SplitOnCaseChangeRegex().Replace(output, " ").ToLowerInvariant();
-			output = output.Replace(" ", "_", StringComparison.Ordinal);
-
-			while (output.Contains("__", StringComparison.Ordinal))
-			{
-				output = output.Replace("__", "_", StringComparison.Ordinal);
-			}
-
-			return output;
+			return input.ToMacroCase().ToLowerInvariant();
 		}
 
 		/// <summary>
@@ -123,7 +113,17 @@ namespace ktsu.io.CaseConverter
 		{
 			ArgumentNullException.ThrowIfNull(input);
 
-			return input.ToSnakeCase().ToUpperInvariant();
+			string output = input;
+			output = NonAlphaNumericRegex().Replace(output, " ");
+			output = SplitOnCaseChangeRegex().Replace(output, " ").ToUpperInvariant();
+			output = output.Replace(" ", "_", StringComparison.Ordinal);
+
+			while (output.Contains("__", StringComparison.Ordinal))
+			{
+				output = output.Replace("__", "_", StringComparison.Ordinal);
+			}
+
+			return output;
 		}
 	}
 }
