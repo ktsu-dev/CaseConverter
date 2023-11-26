@@ -1,0 +1,12 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <UseWindowsForms>false</UseWindowsForms>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionSuffix>alpha.1</VersionSuffix>
+    <RepositoryUrl>https://github.com/ktsu-io/CaseConverter.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/ktsu-io/CaseConverter</PackageProjectUrl>
+  </PropertyGroup>
+
+</Project>
