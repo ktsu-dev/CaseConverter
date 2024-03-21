@@ -1,7 +1,7 @@
+namespace ktsu.io.CaseConverter;
+
 using System.Globalization;
 using System.Text.RegularExpressions;
-
-namespace ktsu.io.CaseConverter;
 
 /// <summary>
 /// Provides extension methods for converting strings between different cases.
