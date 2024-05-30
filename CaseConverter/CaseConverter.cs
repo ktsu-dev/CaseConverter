@@ -43,7 +43,12 @@ public static partial class CaseConverter
 	/// </summary>
 	/// <param name="input"></param>
 	/// <returns></returns>
-	public static string ToTitleCase(this string input) => CultureInfo.InvariantCulture.TextInfo.ToTitleCase(input);
+	public static string ToTitleCase(this string input)
+	{
+		string output = input;
+		output = SplitOnCaseChangeRegex().Replace(output, " ");
+		return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(output);
+	}
 
 	/// <summary>
 	/// Returns a copy of this string converted to PascalCase. Example: "the quick brown fox" becomes "TheQuickBrownFox".
