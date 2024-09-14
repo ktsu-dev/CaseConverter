@@ -1,4 +1,4 @@
-namespace ktsu.io.CaseConverter;
+namespace ktsu.CaseConverter;
 
 using System.Globalization;
 using System.Text.RegularExpressions;
