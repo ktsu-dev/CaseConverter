@@ -1,26 +1,26 @@
-## v1.0.29 (unknown)
+## v1.0.29 (patch)
 
-Changes since v1.0.29-pre.6:
+Changes since v1.0.28-pre.1:
 
-- Add automation scripts for metadata management and versioning ([@Matthew Edmondson](https://github.com/Matthew Edmondson))
+- Add automation scripts for metadata management and versioning ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.0.28-pre.1 (patch)
 
 Changes since v1.0.27:
 
-- Renamed metadata files ([@Matthew Edmondson](https://github.com/Matthew Edmondson))
+- Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.0.24 (patch)
 
 Changes since v1.0.23:
 
-- Replace LICENSE file with LICENSE.md for improved formatting and clarity ([@Matthew Edmondson](https://github.com/Matthew Edmondson))
+- Replace LICENSE file with LICENSE.md for improved formatting and clarity ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.0.2 (patch)
 
 Changes since v1.0.1:
 
-- Migrate ktsu.io to ktsu namespace ([@Matt Edmondson](https://github.com/Matt Edmondson))
+- Migrate ktsu.io to ktsu namespace ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.0.1 (major)
 
