@@ -1,3 +1,9 @@
+## v1.1.0 (minor)
+
+Changes since v1.0.29-pre.7:
+
+- Add unit test project for CaseConverter ([@matt-edmondson](https://github.com/matt-edmondson))
+
 ## v1.0.29 (patch)
 
 Changes since v1.0.28-pre.1:
