@@ -4,23 +4,10 @@ Changes since v1.0.29:
 
 - Add unit test project for CaseConverter ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.0.28-pre.1 (patch)
-
-Changes since v1.0.27:
-
-- Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
-
 ## v1.0.24 (patch)
 
 Changes since v1.0.23:
 
-- Replace LICENSE file with LICENSE.md for improved formatting and clarity ([@matt-edmondson](https://github.com/matt-edmondson))
-
-## v1.0.10-pre.1 (patch)
-
-Changes since v1.0.9:
-
-- Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
 - Replace LICENSE file with LICENSE.md for improved formatting and clarity ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.0.2 (patch)
