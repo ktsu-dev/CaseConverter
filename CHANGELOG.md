@@ -1,3 +1,9 @@
+## v1.2.0 (minor)
+
+Changes since v1.1.0:
+
+- Update .editorconfig and enhance CaseConverter tests ([@matt-edmondson](https://github.com/matt-edmondson))
+
 ## v1.1.0 (minor)
 
 Changes since v1.0.29:
