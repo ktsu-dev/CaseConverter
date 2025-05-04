@@ -1,3 +1,7 @@
+// Copyright (c) ktsu.dev
+// All rights reserved.
+// Licensed under the MIT license.
+
 namespace ktsu.CaseConverter;
 
 using System.Globalization;
@@ -59,7 +63,7 @@ public static partial class CaseConverter
 	/// <returns>A new string in Title Case.</returns>
 	public static string ToTitleCase(this string input)
 	{
-		string output = input;
+		var output = input;
 		output = SplitOnCaseChangeRegex().Replace(output, " ");
 		output = CollapseSpaces(output).Trim();
 
@@ -80,7 +84,7 @@ public static partial class CaseConverter
 	/// <returns><c>true</c> if all alphabetic characters are uppercase; otherwise, <c>false</c>.</returns>
 	public static bool IsAllCaps(this string output)
 	{
-		string alphaChars = NonAlphaRegex().Replace(output, string.Empty);
+		var alphaChars = NonAlphaRegex().Replace(output, string.Empty);
 		return alphaChars.All(char.IsUpper);
 	}
 
@@ -108,7 +112,7 @@ public static partial class CaseConverter
 	{
 		ArgumentNullException.ThrowIfNull(input);
 
-		string output = input;
+		var output = input;
 		output = NonAlphaNumericRegex().Replace(output, " ");
 		output = SplitOnCaseChangeRegex().Replace(output, " ");
 		output = output.ToTitleCase();
@@ -126,7 +130,7 @@ public static partial class CaseConverter
 	{
 		ArgumentNullException.ThrowIfNull(input);
 
-		string output = input.ToPascalCase();
+		var output = input.ToPascalCase();
 		return output.ToLowercaseFirstChar();
 	}
 
@@ -151,7 +155,7 @@ public static partial class CaseConverter
 	{
 		ArgumentNullException.ThrowIfNull(input);
 
-		string output = input.ToSnakeCase();
+		var output = input.ToSnakeCase();
 		output = output.Replace("_", "-", StringComparison.Ordinal);
 
 		return output;
@@ -166,7 +170,7 @@ public static partial class CaseConverter
 	{
 		ArgumentNullException.ThrowIfNull(input);
 
-		string output = input.Trim();
+		var output = input.Trim();
 		output = NonAlphaNumericRegex().Replace(output, " ");
 		output = SplitOnCaseChangeRegex().Replace(output, " ").ToUpperInvariant();
 		output = output.Replace(" ", "_", StringComparison.Ordinal);

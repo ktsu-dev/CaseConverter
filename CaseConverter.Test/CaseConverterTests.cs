@@ -1,3 +1,7 @@
+// Copyright (c) ktsu.dev
+// All rights reserved.
+// Licensed under the MIT license.
+
 namespace ktsu.CaseConverter.Test;
 
 [TestClass]
@@ -6,24 +10,24 @@ public class CaseConverterTests
 	[TestMethod]
 	public void IsAllCapsShouldReturnTrueWhenStringIsAllCaps()
 	{
-		string input = "HELLO WORLD";
-		bool result = input.IsAllCaps();
+		var input = "HELLO WORLD";
+		var result = input.IsAllCaps();
 		Assert.IsTrue(result);
 	}
 
 	[TestMethod]
 	public void IsAllCapsShouldReturnFalseWhenStringContainsLowercase()
 	{
-		string input = "Hello WORLD";
-		bool result = input.IsAllCaps();
+		var input = "Hello WORLD";
+		var result = input.IsAllCaps();
 		Assert.IsFalse(result);
 	}
 
 	[TestMethod]
 	public void IsAllCapsShouldReturnTrueWhenStringHasNoAlphabeticChars()
 	{
-		string input = "1234!?";
-		bool result = input.IsAllCaps();
+		var input = "1234!?";
+		var result = input.IsAllCaps();
 		Assert.IsTrue(result, "No alpha characters should be considered 'all caps'.");
 	}
 
@@ -37,128 +41,128 @@ public class CaseConverterTests
 	[TestMethod]
 	public void ToTitleCaseShouldHandleMultipleSpaces()
 	{
-		string input = "  the   quick   brown   FOX  ";
-		string result = input.ToTitleCase();
+		var input = "  the   quick   brown   FOX  ";
+		var result = input.ToTitleCase();
 		Assert.AreEqual("The Quick Brown FOX", result);
 	}
 
 	[TestMethod]
 	public void ToLowercaseFirstCharShouldReturnEmptyWhenInputIsEmpty()
 	{
-		string input = string.Empty;
-		string result = input.ToLowercaseFirstChar();
+		var input = string.Empty;
+		var result = input.ToLowercaseFirstChar();
 		Assert.AreEqual(string.Empty, result);
 	}
 
 	[TestMethod]
 	public void ToLowercaseFirstCharShouldHandleSingleCharacter()
 	{
-		string input = "A";
-		string result = input.ToLowercaseFirstChar();
+		var input = "A";
+		var result = input.ToLowercaseFirstChar();
 		Assert.AreEqual("a", result);
 	}
 
 	[TestMethod]
 	public void ToLowercaseFirstCharShouldConvertFirstCharToLowercase()
 	{
-		string input = "Hello";
-		string result = input.ToLowercaseFirstChar();
+		var input = "Hello";
+		var result = input.ToLowercaseFirstChar();
 		Assert.AreEqual("hello", result);
 	}
 
 	[TestMethod]
 	public void ToUppercaseFirstCharShouldConvertFirstCharToUppercase()
 	{
-		string input = "hello";
-		string result = input.ToUppercaseFirstChar();
+		var input = "hello";
+		var result = input.ToUppercaseFirstChar();
 		Assert.AreEqual("Hello", result);
 	}
 
 	[TestMethod]
 	public void ToTitleCaseShouldConvertToTitleCase()
 	{
-		string input = "the quick Brown FOX";
-		string result = input.ToTitleCase();
+		var input = "the quick Brown FOX";
+		var result = input.ToTitleCase();
 		Assert.AreEqual("The Quick Brown FOX", result);
 	}
 
 	[TestMethod]
 	public void ToPascalCaseShouldConvertToPascalCase()
 	{
-		string input = "the quick brown fox";
-		string result = input.ToPascalCase();
+		var input = "the quick brown fox";
+		var result = input.ToPascalCase();
 		Assert.AreEqual("TheQuickBrownFox", result);
 	}
 
 	[TestMethod]
 	public void ToCamelCaseShouldConvertToCamelCase()
 	{
-		string input = "THE QUICK BROWN FOX";
-		string result = input.ToCamelCase();
+		var input = "THE QUICK BROWN FOX";
+		var result = input.ToCamelCase();
 		Assert.AreEqual("theQuickBrownFox", result);
 	}
 
 	[TestMethod]
 	public void ToSnakeCaseShouldConvertToSnakeCase()
 	{
-		string input = "TheQuick BrownFox";
-		string result = input.ToSnakeCase();
+		var input = "TheQuick BrownFox";
+		var result = input.ToSnakeCase();
 		Assert.AreEqual("the_quick_brown_fox", result);
 	}
 
 	[TestMethod]
 	public void ToKebabCaseShouldConvertToKebabCase()
 	{
-		string input = "the quick brown fox";
-		string result = input.ToKebabCase();
+		var input = "the quick brown fox";
+		var result = input.ToKebabCase();
 		Assert.AreEqual("the-quick-brown-fox", result);
 	}
 
 	[TestMethod]
 	public void ToMacroCaseShouldConvertToMacroCase()
 	{
-		string input = "the quickBrown Fox";
-		string result = input.ToMacroCase();
+		var input = "the quickBrown Fox";
+		var result = input.ToMacroCase();
 		Assert.AreEqual("THE_QUICK_BROWN_FOX", result);
 	}
 
 	[TestMethod]
 	public void ToPascalCaseShouldCollapseSpacesAndBeTrimmed()
 	{
-		string input = "  the   quick  brown   fox  ";
-		string result = input.ToPascalCase();
+		var input = "  the   quick  brown   fox  ";
+		var result = input.ToPascalCase();
 		Assert.AreEqual("TheQuickBrownFox", result);
 	}
 
 	[TestMethod]
 	public void ToCamelCaseShouldCollapseSpacesAndBeTrimmed()
 	{
-		string input = "  THE   QUICK  BROWN   FOX  ";
-		string result = input.ToCamelCase();
+		var input = "  THE   QUICK  BROWN   FOX  ";
+		var result = input.ToCamelCase();
 		Assert.AreEqual("theQuickBrownFox", result);
 	}
 
 	[TestMethod]
 	public void ToSnakeCaseShouldCollapseSpacesAndBeTrimmed()
 	{
-		string input = "  the   quick  brown   fox  ";
-		string result = input.ToSnakeCase();
+		var input = "  the   quick  brown   fox  ";
+		var result = input.ToSnakeCase();
 		Assert.AreEqual("the_quick_brown_fox", result);
 	}
 
 	[TestMethod]
 	public void ToKebabCaseShouldCollapseSpacesAndBeTrimmed()
 	{
-		string input = "  the   quick  brown   fox  ";
-		string result = input.ToKebabCase();
+		var input = "  the   quick  brown   fox  ";
+		var result = input.ToKebabCase();
 		Assert.AreEqual("the-quick-brown-fox", result);
 	}
 
 	[TestMethod]
 	public void ToMacroCaseShouldCollapseSpacesAndBeTrimmed()
 	{
-		string input = "  the   quick  brown   fox  ";
-		string result = input.ToMacroCase();
+		var input = "  the   quick  brown   fox  ";
+		var result = input.ToMacroCase();
 		Assert.AreEqual("THE_QUICK_BROWN_FOX", result);
 	}
 }
