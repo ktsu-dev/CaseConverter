@@ -580,7 +580,7 @@ function New-License {
     $content = Get-Content $script:LICENSE_TEMPLATE -Raw
 
     # Project URL
-    $projectUrl = "$ServerUrl/$Owner/$Repository"
+    $projectUrl = "$ServerUrl/$Repository"
     $content = $content.Replace('{PROJECT_URL}', $projectUrl)
 
     # Copyright line
