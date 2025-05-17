@@ -1,6 +1,6 @@
 MIT License
 
-https://github.com/ktsu-dev/ktsu-dev/CaseConverter
+https://github.com/ktsu-dev/CaseConverter
 
 Copyright (c) 2023-2025 ktsu-dev
 

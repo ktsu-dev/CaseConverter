@@ -1,6 +1,11 @@
+## v1.3.2 (patch)
+
+Changes since v1.3.1:
+
+- Fix project URL in New-License function to remove Owner variable, simplifying the URL construction. ([@matt-edmondson](https://github.com/matt-edmondson))
 ## v1.3.2-pre.14 (prerelease)
 
-Incremental prerelease update.
+Changes since v1.3.2-pre.13:
 ## v1.3.2-pre.13 (prerelease)
 
 Changes since v1.3.2-pre.12:
