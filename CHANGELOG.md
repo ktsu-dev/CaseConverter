@@ -1,3 +1,6 @@
+## v1.3.3
+
+No significant changes detected since v1.3.3.
 ## v1.3.3 (patch)
 
 Changes since v1.3.2:
@@ -27,7 +30,7 @@ Changes since v1.3.3-pre.1:
 - Sync .mailmap ([@ktsu[bot]](https://github.com/ktsu[bot]))
 ## v1.3.3-pre.1 (prerelease)
 
-Changes since v1.3.2:
+Incremental prerelease update.
 ## v1.3.2 (patch)
 
 Changes since v1.3.1:
