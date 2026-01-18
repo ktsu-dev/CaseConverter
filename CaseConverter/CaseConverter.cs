@@ -2,6 +2,8 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("ktsu.CaseConverter.Test")]
+
 namespace ktsu.CaseConverter;
 
 using System.Globalization;
@@ -65,7 +67,9 @@ public static partial class CaseConverter
 		}
 #endif
 #if NETSTANDARD2_0
+#pragma warning disable IDE0057 // Substring cannot be simplified in netstandard2.0
 		return CollapseSpaces(input.Length > 0 ? char.ToLowerInvariant(input[0]) + input.Substring(1) : input).Trim();
+#pragma warning restore IDE0057
 #else
 		return CollapseSpaces(input.Length > 0 ? char.ToLowerInvariant(input[0]) + input[1..] : input).Trim();
 #endif
@@ -87,7 +91,9 @@ public static partial class CaseConverter
 		}
 #endif
 #if NETSTANDARD2_0
+#pragma warning disable IDE0057 // Substring cannot be simplified in netstandard2.0
 		return CollapseSpaces(input.Length > 0 ? char.ToUpperInvariant(input[0]) + input.Substring(1) : input).Trim();
+#pragma warning restore IDE0057
 #else
 		return CollapseSpaces(input.Length > 0 ? char.ToUpperInvariant(input[0]) + input[1..] : input).Trim();
 #endif

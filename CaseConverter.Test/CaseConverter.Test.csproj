@@ -4,6 +4,13 @@
 
   <PropertyGroup>
     <IsTestProject>true</IsTestProject>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks></TargetFrameworks>
+    <TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
+    <TestingPlatformShowTestsFailureDetails>true</TestingPlatformShowTestsFailureDetails>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CaseConverter\CaseConverter.csproj" />
+  </ItemGroup>
 </Project>
