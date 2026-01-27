@@ -1,9 +1,8 @@
-## v1.3.6-pre.3 (prerelease)
+## v1.3.6 (patch)
 
-Changes since v1.3.6-pre.2:
+Changes since v1.3.5:
 
-- Sync scripts\update-winget-manifests.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
-- Merge remote-tracking branch 'refs/remotes/origin/main' ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Extend to Unicode letters ([@Carl Henning Haugen](https://github.com/Carl Henning Haugen))
 ## v1.3.6-pre.3 (prerelease)
 
 Changes since v1.3.6-pre.2:
