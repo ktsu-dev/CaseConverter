@@ -167,4 +167,12 @@ public class CaseConverterTests
 		string result = input.ToMacroCase();
 		Assert.AreEqual("THE_QUICK_BROWN_FOX", result);
 	}
+
+	[TestMethod]
+	public void ToMacroCaseShouldCollapseSpacesAndBeTrimmedExtendedUnicode()
+	{
+		string input = "  den   raske  høye  brune   reven  ";
+		string result = input.ToMacroCase();
+		Assert.AreEqual("DEN_RASKE_HØYE_BRUNE_REVEN", result);
+	}
 }

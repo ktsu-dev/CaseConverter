@@ -19,11 +19,11 @@ public static partial class CaseConverter
 	/// </summary>
 	/// <returns>The compiled <see cref="Regex"/> instance.</returns>
 #if NET7_0_OR_GREATER
-	[GeneratedRegex("[^A-Za-z0-9]", RegexOptions.Compiled)]
+	[GeneratedRegex(@"[^\p{L}0-9]", RegexOptions.Compiled)]
 	private static partial Regex NonAlphaNumericRegex();
 #else
 	private static Regex NonAlphaNumericRegex() => NonAlphaNumericRegexInstance;
-	private static readonly Regex NonAlphaNumericRegexInstance = new("[^A-Za-z0-9]", RegexOptions.Compiled);
+	private static readonly Regex NonAlphaNumericRegexInstance = new(@"[^\p{L}0-9]", RegexOptions.Compiled);
 #endif
 
 	/// <summary>
@@ -31,11 +31,11 @@ public static partial class CaseConverter
 	/// </summary>
 	/// <returns>The compiled <see cref="Regex"/> instance.</returns>
 #if NET7_0_OR_GREATER
-	[GeneratedRegex("[^A-Za-z]", RegexOptions.Compiled)]
+	[GeneratedRegex(@"[^\p{L}]", RegexOptions.Compiled)]
 	private static partial Regex NonAlphaRegex();
 #else
 	private static Regex NonAlphaRegex() => NonAlphaRegexInstance;
-	private static readonly Regex NonAlphaRegexInstance = new("[^A-Za-z]", RegexOptions.Compiled);
+	private static readonly Regex NonAlphaRegexInstance = new(@"[^\p{L}]", RegexOptions.Compiled);
 #endif
 
 	/// <summary>
@@ -44,11 +44,11 @@ public static partial class CaseConverter
 	/// </summary>
 	/// <returns>The compiled <see cref="Regex"/> instance.</returns>
 #if NET7_0_OR_GREATER
-	[GeneratedRegex(@"(?<=[A-Z])(?=[A-Z][a-z])|(?<=[^A-Z])(?=[A-Z])|(?<=[A-Za-z])(?=[^A-Za-z])", RegexOptions.Compiled)]
+	[GeneratedRegex(@"(?<=[\p{Lu}])(?=[\p{Lu}][\p{Ll}])|(?<=[^\p{Lu}])(?=[\p{Lu}])|(?<=[\p{L}])(?=[^\p{L}])", RegexOptions.Compiled)]
 	private static partial Regex SplitOnCaseChangeRegex();
 #else
 	private static Regex SplitOnCaseChangeRegex() => SplitOnCaseChangeRegexInstance;
-	private static readonly Regex SplitOnCaseChangeRegexInstance = new(@"(?<=[A-Z])(?=[A-Z][a-z])|(?<=[^A-Z])(?=[A-Z])|(?<=[A-Za-z])(?=[^A-Za-z])", RegexOptions.Compiled);
+	private static readonly Regex SplitOnCaseChangeRegexInstance = new(@"(?<=[\p{Lu}])(?=[\p{Lu}][\p{Ll}])|(?<=[^\p{Lu}])(?=[\p{Lu}])|(?<=[\p{L}])(?=[^\p{L}])", RegexOptions.Compiled);
 #endif
 
 	/// <summary>
