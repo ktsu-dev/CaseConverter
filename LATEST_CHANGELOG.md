@@ -1,3 +1,5 @@
-## v1.3.6
+## v1.3.7 (patch)
 
-No significant changes detected since v1.3.6.
+Changes since v1.3.6:
+
+- Refactor project files and update test assertions for clarity ([@matt-edmondson](https://github.com/matt-edmondson))
