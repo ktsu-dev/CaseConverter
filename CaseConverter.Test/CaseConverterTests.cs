@@ -14,7 +14,7 @@ public class CaseConverterTests
 	{
 		string input = "HELLO WORLD";
 		bool result = input.IsAllCaps();
-		Assert.IsTrue(result);
+		Assert.IsTrue(result, "All uppercase string should be detected as all caps.");
 	}
 
 	[TestMethod]
@@ -22,7 +22,7 @@ public class CaseConverterTests
 	{
 		string input = "Hello WORLD";
 		bool result = input.IsAllCaps();
-		Assert.IsFalse(result);
+		Assert.IsFalse(result, "String containing lowercase characters should not be detected as all caps.");
 	}
 
 	[TestMethod]
