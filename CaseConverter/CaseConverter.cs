@@ -9,6 +9,8 @@ namespace ktsu.CaseConverter;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
+using static Polyfill;
+
 /// <summary>
 /// Provides extension methods for converting strings between different cases.
 /// </summary>
@@ -58,14 +60,7 @@ public static partial class CaseConverter
 	/// <returns>A new string with the first character converted to lowercase.</returns>
 	public static string ToLowercaseFirstChar(this string input)
 	{
-#if NET6_0_OR_GREATER
-		ArgumentNullException.ThrowIfNull(input);
-#else
-		if (input is null)
-		{
-			throw new ArgumentNullException(nameof(input));
-		}
-#endif
+		Ensure.NotNull(input);
 #if NETSTANDARD2_0
 #pragma warning disable IDE0057 // Substring cannot be simplified in netstandard2.0
 		return CollapseSpaces(input.Length > 0 ? char.ToLowerInvariant(input[0]) + input.Substring(1) : input).Trim();
@@ -82,14 +77,7 @@ public static partial class CaseConverter
 	/// <returns>A new string with the first character converted to uppercase.</returns>
 	public static string ToUppercaseFirstChar(this string input)
 	{
-#if NET6_0_OR_GREATER
-		ArgumentNullException.ThrowIfNull(input);
-#else
-		if (input is null)
-		{
-			throw new ArgumentNullException(nameof(input));
-		}
-#endif
+		Ensure.NotNull(input);
 #if NETSTANDARD2_0
 #pragma warning disable IDE0057 // Substring cannot be simplified in netstandard2.0
 		return CollapseSpaces(input.Length > 0 ? char.ToUpperInvariant(input[0]) + input.Substring(1) : input).Trim();
@@ -160,14 +148,7 @@ public static partial class CaseConverter
 	/// <returns>A new string in PascalCase.</returns>
 	public static string ToPascalCase(this string input)
 	{
-#if NET6_0_OR_GREATER
-		ArgumentNullException.ThrowIfNull(input);
-#else
-		if (input is null)
-		{
-			throw new ArgumentNullException(nameof(input));
-		}
-#endif
+		Ensure.NotNull(input);
 
 		string output = input;
 		output = NonAlphaNumericRegex().Replace(output, " ");
@@ -189,14 +170,7 @@ public static partial class CaseConverter
 	/// <returns>A new string in camelCase.</returns>
 	public static string ToCamelCase(this string input)
 	{
-#if NET6_0_OR_GREATER
-		ArgumentNullException.ThrowIfNull(input);
-#else
-		if (input is null)
-		{
-			throw new ArgumentNullException(nameof(input));
-		}
-#endif
+		Ensure.NotNull(input);
 
 		string output = input.ToPascalCase();
 		return output.ToLowercaseFirstChar();
@@ -210,14 +184,7 @@ public static partial class CaseConverter
 	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "We actually want lowercase here as snake case is lowercase")]
 	public static string ToSnakeCase(this string input)
 	{
-#if NET6_0_OR_GREATER
-		ArgumentNullException.ThrowIfNull(input);
-#else
-		if (input is null)
-		{
-			throw new ArgumentNullException(nameof(input));
-		}
-#endif
+		Ensure.NotNull(input);
 		return input.ToMacroCase().ToLowerInvariant();
 	}
 
@@ -228,14 +195,7 @@ public static partial class CaseConverter
 	/// <returns>A new string in kebab-case.</returns>
 	public static string ToKebabCase(this string input)
 	{
-#if NET6_0_OR_GREATER
-		ArgumentNullException.ThrowIfNull(input);
-#else
-		if (input is null)
-		{
-			throw new ArgumentNullException(nameof(input));
-		}
-#endif
+		Ensure.NotNull(input);
 
 		string output = input.ToSnakeCase();
 #if NETSTANDARD2_0
@@ -254,14 +214,7 @@ public static partial class CaseConverter
 	/// <returns>A new string in MACRO_CASE.</returns>
 	public static string ToMacroCase(this string input)
 	{
-#if NET6_0_OR_GREATER
-		ArgumentNullException.ThrowIfNull(input);
-#else
-		if (input is null)
-		{
-			throw new ArgumentNullException(nameof(input));
-		}
-#endif
+		Ensure.NotNull(input);
 
 		string output = input.Trim();
 		output = NonAlphaNumericRegex().Replace(output, " ");
