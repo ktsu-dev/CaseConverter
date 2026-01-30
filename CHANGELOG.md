@@ -1,6 +1,8 @@
-## v1.3.7
+## v1.3.8 (patch)
 
-No significant changes detected since v1.3.7.
+Changes since v1.3.7:
+
+- Remove .github\workflows\project.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 ## v1.3.7 (patch)
 
 Changes since v1.3.6:
