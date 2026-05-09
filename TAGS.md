@@ -1,0 +1,1 @@
+case converter;string casing;pascal case;camel case;snake case;kebab case;macro case;title case;extension methods;string manipulation;naming conventions;dotnet;csharp;netstandard
