@@ -1,7 +1,8 @@
-## v1.3.13-pre.1 (prerelease)
+## v1.3.13 (patch)
 
-Changes since v1.3.13-pre.1:
+Changes since v1.3.12:
 
+- Add TAGS.md with NuGet package tags ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.3.13-pre.1 (prerelease)
 
