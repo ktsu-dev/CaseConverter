@@ -1,3 +1,10 @@
+## v1.3.14 (patch)
+
+Changes since v1.3.13:
+
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync global.json ([@ktsu[bot]](https://github.com/ktsu[bot]))
+
 ## v1.3.13 (patch)
 
 Changes since v1.3.12:
@@ -8,9 +15,7 @@ Changes since v1.3.12:
 
 ## v1.3.13-pre.1 (prerelease)
 
-Changes since v1.3.12:
-
-- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
+No significant changes detected since v1.3.13.
 
 ## v1.3.12 (patch)
 
