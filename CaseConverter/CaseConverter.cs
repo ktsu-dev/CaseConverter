@@ -9,8 +9,6 @@ namespace ktsu.CaseConverter;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-using static Polyfill;
-
 /// <summary>
 /// Provides extension methods for converting strings between different cases.
 /// </summary>
