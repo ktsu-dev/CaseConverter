@@ -2,11 +2,13 @@
 
 > A library with extension methods to convert strings between common casings used in code.
 
-[![License](https://img.shields.io/github/license/ktsu-dev/CaseConverter)](https://github.com/ktsu-dev/CaseConverter/blob/main/LICENSE.md)
-[![NuGet](https://img.shields.io/nuget/v/ktsu.CaseConverter.svg)](https://www.nuget.org/packages/ktsu.CaseConverter/)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/ktsu.CaseConverter.svg)](https://www.nuget.org/packages/ktsu.CaseConverter/)
-[![Build Status](https://github.com/ktsu-dev/CaseConverter/workflows/build/badge.svg)](https://github.com/ktsu-dev/CaseConverter/actions)
-[![GitHub Stars](https://img.shields.io/github/stars/ktsu-dev/CaseConverter?style=social)](https://github.com/ktsu-dev/CaseConverter/stargazers)
+[![License](https://img.shields.io/github/license/ktsu-dev/CaseConverter.svg?label=License&logo=nuget)](LICENSE.md)
+[![NuGet Version](https://img.shields.io/nuget/v/ktsu.CaseConverter?label=Stable&logo=nuget)](https://nuget.org/packages/ktsu.CaseConverter)
+[![NuGet Version](https://img.shields.io/nuget/vpre/ktsu.CaseConverter?label=Latest&logo=nuget)](https://nuget.org/packages/ktsu.CaseConverter)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/ktsu.CaseConverter?label=Downloads&logo=nuget)](https://nuget.org/packages/ktsu.CaseConverter)
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/ktsu-dev/CaseConverter?label=Commits&logo=github)](https://github.com/ktsu-dev/CaseConverter/commits/main)
+[![GitHub contributors](https://img.shields.io/github/contributors/ktsu-dev/CaseConverter?label=Contributors&logo=github)](https://github.com/ktsu-dev/CaseConverter/graphs/contributors)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ktsu-dev/CaseConverter/dotnet.yml?label=Build&logo=github)](https://github.com/ktsu-dev/CaseConverter/actions)
 
 ## Introduction
 
