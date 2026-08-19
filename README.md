@@ -8,7 +8,7 @@
 [![NuGet Downloads](https://img.shields.io/nuget/dt/ktsu.CaseConverter?label=Downloads&logo=nuget)](https://nuget.org/packages/ktsu.CaseConverter)
 [![GitHub commit activity](https://img.shields.io/github/commit-activity/m/ktsu-dev/CaseConverter?label=Commits&logo=github)](https://github.com/ktsu-dev/CaseConverter/commits/main)
 [![GitHub contributors](https://img.shields.io/github/contributors/ktsu-dev/CaseConverter?label=Contributors&logo=github)](https://github.com/ktsu-dev/CaseConverter/graphs/contributors)
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ktsu-dev/CaseConverter/dotnet.yml?label=Build&logo=github)](https://github.com/ktsu-dev/CaseConverter/actions)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ktsu-dev/CaseConverter/dotnet.yml?branch=main&label=Build&logo=github)](https://github.com/ktsu-dev/CaseConverter/actions)
 
 ## Introduction
 
