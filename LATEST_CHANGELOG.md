@@ -1,6 +1,4 @@
-## v1.3.35 (patch)
+## v1.3.35
 
-Changes since v1.3.34:
-
-- ci: correct two stale comments in the dotnet workflow [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
+No significant changes detected since v1.3.35.
 
