@@ -215,6 +215,7 @@ public static partial class CaseConverter
 		string output = input.Trim();
 		output = NonAlphaNumericRegex().Replace(output, " ");
 		output = SplitOnCaseChangeRegex().Replace(output, " ").ToUpperInvariant();
+		output = CollapseSpaces(output).Trim();
 #if NETSTANDARD2_0
 		output = output.Replace(" ", "_");
 

@@ -173,4 +173,28 @@ public class CaseConverterTests
 		string result = input.ToMacroCase();
 		Assert.AreEqual("DEN_RASKE_HØYE_BRUNE_REVEN", result);
 	}
+
+	[TestMethod]
+	public void ToSnakeCaseShouldNotIncludeLeadingOrTrailingSeparators()
+	{
+		string input = "_privateField-";
+		string result = input.ToSnakeCase();
+		Assert.AreEqual("private_field", result);
+	}
+
+	[TestMethod]
+	public void ToKebabCaseShouldNotIncludeLeadingOrTrailingSeparators()
+	{
+		string input = "_privateField-";
+		string result = input.ToKebabCase();
+		Assert.AreEqual("private-field", result);
+	}
+
+	[TestMethod]
+	public void ToMacroCaseShouldNotIncludeLeadingOrTrailingSeparators()
+	{
+		string input = "_privateField-";
+		string result = input.ToMacroCase();
+		Assert.AreEqual("PRIVATE_FIELD", result);
+	}
 }
