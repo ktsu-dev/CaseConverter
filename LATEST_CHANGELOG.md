@@ -1,33 +1,4 @@
-## v1.4.0 (minor)
+## v1.4.0
 
-Changes since v1.3.0:
-
-- ci: correct two stale comments in the dotnet workflow [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
-- ci: make the SonarQube quality gate opt in [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
-- ci: adopt the unified dotnet workflow [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
-- chore: store icon.png in LFS as .gitattributes declares ([@matt-edmondson](https://github.com/matt-edmondson))
-- docs: scope build badge to the default branch ([@matt-edmondson](https://github.com/matt-edmondson))
-- docs: correct README, DESCRIPTION and TAGS metadata ([@matt-edmondson](https://github.com/matt-edmondson))
-- Stop Update SDKs failing when there is nothing to update ([@matt-edmondson](https://github.com/matt-edmondson))
-- Fix build for ktsu.Sdk 2.27.0 analyzers: Polyfill PrivateAssets (KTSU0007), direct netstandard framework package refs (KTSU0001) [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
-- Sync .editorconfig ([@KtsuTools](https://github.com/KtsuTools))
-- Sync global.json ([@KtsuTools](https://github.com/KtsuTools))
-- chore: update ktsu.Sdk to 2.21.1 [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
-- chore: remove source link package references ([@matt-edmondson](https://github.com/matt-edmondson))
-- Remove unused static import and clean up package references ([@matt-edmondson](https://github.com/matt-edmondson))
-- Add TAGS.md with NuGet package tags ([@matt-edmondson](https://github.com/matt-edmondson))
-- Refactor permissions in dotnet.yml for minimal access; add SonarLint configuration in settings.json ([@matt-edmondson](https://github.com/matt-edmondson))
-- Remove legacy build scripts ([@matt-edmondson](https://github.com/matt-edmondson))
-- Refactor null checks to use Ensure.NotNull for consistency ([@matt-edmondson](https://github.com/matt-edmondson))
-- Refactor project files and update test assertions for clarity ([@matt-edmondson](https://github.com/matt-edmondson))
-- Merge branch 'ktsu-dev:main' into main ([@Carl Henning Haugen](https://github.com/Carl Henning Haugen))
-- Update .NET version to 10.0 and adjust coverage reporting in CI workflows ([@matt-edmondson](https://github.com/matt-edmondson))
-- Add CLAUDE.md for project guidance and update project files for .NET 10.0 support ([@matt-edmondson](https://github.com/matt-edmondson))
-- Extend to Unicode letters ([@Carl Henning Haugen](https://github.com/Carl Henning Haugen))
-- Update .gitattributes, .runsettings, and build scripts for improved test coverage and CI/CD configuration ([@matt-edmondson](https://github.com/matt-edmondson))
-- Add new configuration files and update build scripts for SDK management and CI/CD improvements ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update configuration files and scripts for improved build and test processes ([@matt-edmondson](https://github.com/matt-edmondson))
-- Fix project URL in New-License function to remove Owner variable, simplifying the URL construction. ([@matt-edmondson](https://github.com/matt-edmondson))
-- Remove obsolete build configuration files and scripts, including Directory.Build.props, Directory.Build.targets, and various PowerShell scripts for versioning and changelog generation. Update CaseConverter and its tests to use 'var' for variable declarations and add copyright headers. ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update README and project files to reflect new SDK and enhance documentation ([@matt-edmondson](https://github.com/matt-edmondson))
+No significant changes detected since v1.4.0.
 
