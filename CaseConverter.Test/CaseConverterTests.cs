@@ -197,4 +197,55 @@ public class CaseConverterTests
 		string result = input.ToMacroCase();
 		Assert.AreEqual("PRIVATE_FIELD", result);
 	}
+
+	// U+10400 DESERET CAPITAL LONG I and U+10428 DESERET SMALL LONG I are letters outside the
+	// Basic Multilingual Plane, so each is a surrogate pair in UTF-16. They are a cased pair,
+	// which lets these tests check case mapping as well as preservation.
+	private const string DeseretCapitalLongI = "\U00010400";
+	private const string DeseretSmallLongI = "\U00010428";
+
+	[TestMethod]
+	public void ToSnakeCaseShouldPreserveLettersOutsideTheBasicMultilingualPlane()
+	{
+		string input = $"{DeseretCapitalLongI}abc";
+		string result = input.ToSnakeCase();
+		Assert.AreEqual($"{DeseretSmallLongI}abc", result, "A letter outside the BMP must be lowercased, not deleted.");
+	}
+
+	[TestMethod]
+	public void ToPascalCaseShouldPreserveLettersOutsideTheBasicMultilingualPlane()
+	{
+		string input = $"set {DeseretCapitalLongI}abc";
+		string result = input.ToPascalCase();
+		Assert.AreEqual($"Set{DeseretCapitalLongI}abc", result, "A letter outside the BMP must survive the conversion.");
+	}
+
+	[TestMethod]
+	public void ToMacroCaseShouldTreatAnAstralUppercaseLetterAsAWordBoundary()
+	{
+		string input = $"abc{DeseretCapitalLongI}def";
+		string result = input.ToMacroCase();
+
+		// "abcXdef" breaks before the "X"; an uppercase letter outside the BMP must behave the same.
+		Assert.AreEqual($"ABC_{DeseretCapitalLongI}DEF", result);
+		Assert.AreEqual("ABC_XDEF", "abcXdef".ToMacroCase(), "The BMP analogue this case is matched against.");
+	}
+
+	[TestMethod]
+	public void IsAllCapsShouldReturnFalseForAnAstralLowercaseLetter()
+	{
+		string input = $"HELLO {DeseretSmallLongI}";
+		bool result = input.IsAllCaps();
+		Assert.IsFalse(result, "A lowercase letter outside the BMP must count as lowercase, not be skipped.");
+	}
+
+	[TestMethod]
+	public void ToSnakeCaseShouldStillDropAstralCharactersThatAreNotLetters()
+	{
+		// U+1F600 GRINNING FACE is a surrogate pair but not a letter, so it is a separator like
+		// any other non-alphanumeric. This pins the boundary of the surrogate-pair handling.
+		string input = "emoji \U0001F600 here";
+		string result = input.ToSnakeCase();
+		Assert.AreEqual("emoji_here", result);
+	}
 }
