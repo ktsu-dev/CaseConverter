@@ -5,7 +5,7 @@
 namespace ktsu.CaseConverter;
 
 using System.Globalization;
-using System.Text.RegularExpressions;
+using System.Text;
 
 /// <summary>
 /// Provides extension methods for converting strings between different cases.
@@ -13,41 +13,113 @@ using System.Text.RegularExpressions;
 public static partial class CaseConverter
 {
 	/// <summary>
-	/// Gets a <see cref="Regex"/> that matches all non-alphanumeric characters.
+	/// Returns the number of UTF-16 code units making up the code point at <paramref name="index"/>.
 	/// </summary>
-	/// <returns>The compiled <see cref="Regex"/> instance.</returns>
-#if NET7_0_OR_GREATER
-	[GeneratedRegex(@"[^\p{L}0-9]", RegexOptions.Compiled)]
-	private static partial Regex NonAlphaNumericRegex();
-#else
-	private static Regex NonAlphaNumericRegex() => NonAlphaNumericRegexInstance;
-	private static readonly Regex NonAlphaNumericRegexInstance = new(@"[^\p{L}0-9]", RegexOptions.Compiled);
-#endif
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <returns>2 for a surrogate pair, otherwise 1.</returns>
+	private static int CodePointLength(string input, int index) => char.IsSurrogatePair(input, index) ? 2 : 1;
 
 	/// <summary>
-	/// Gets a <see cref="Regex"/> that matches all non-alphabetic characters.
+	/// Replaces every code point that is not a Unicode letter or an ASCII digit with a space.
 	/// </summary>
-	/// <returns>The compiled <see cref="Regex"/> instance.</returns>
-#if NET7_0_OR_GREATER
-	[GeneratedRegex(@"[^\p{L}]", RegexOptions.Compiled)]
-	private static partial Regex NonAlphaRegex();
-#else
-	private static Regex NonAlphaRegex() => NonAlphaRegexInstance;
-	private static readonly Regex NonAlphaRegexInstance = new(@"[^\p{L}]", RegexOptions.Compiled);
-#endif
+	/// <param name="input">The string to process.</param>
+	/// <returns>A new string with each non-alphanumeric code point replaced by a space.</returns>
+	/// <remarks>
+	/// This walks by code point rather than by UTF-16 code unit. The regex this replaces
+	/// (<c>[^\p{L}0-9]</c>) matched per code unit, and a surrogate code unit is categorised as
+	/// <see cref="UnicodeCategory.Surrogate"/> rather than as a letter — so each half of a
+	/// surrogate pair matched and letters outside the Basic Multilingual Plane were silently
+	/// deleted instead of preserved.
+	/// </remarks>
+	private static string ReplaceNonAlphaNumericWithSpace(string input)
+	{
+		StringBuilder builder = new(input.Length);
+
+		for (int i = 0; i < input.Length;)
+		{
+			int length = CodePointLength(input, i);
+
+			if (char.IsLetter(input, i) || input[i] is >= '0' and <= '9')
+			{
+				builder.Append(input, i, length);
+			}
+			else
+			{
+				builder.Append(' ');
+			}
+
+			i += length;
+		}
+
+		return builder.ToString();
+	}
 
 	/// <summary>
-	/// Gets a <see cref="Regex"/> that splits on case changes, such as transitions from
-	/// lower to upper or upper to lower within a string.
+	/// Inserts a space at each case change, such as transitions from lower to upper or from a
+	/// letter to a non-letter.
 	/// </summary>
-	/// <returns>The compiled <see cref="Regex"/> instance.</returns>
-#if NET7_0_OR_GREATER
-	[GeneratedRegex(@"(?<=[\p{Lu}])(?=[\p{Lu}][\p{Ll}])|(?<=[^\p{Lu}])(?=[\p{Lu}])|(?<=[\p{L}])(?=[^\p{L}])", RegexOptions.Compiled)]
-	private static partial Regex SplitOnCaseChangeRegex();
-#else
-	private static Regex SplitOnCaseChangeRegex() => SplitOnCaseChangeRegexInstance;
-	private static readonly Regex SplitOnCaseChangeRegexInstance = new(@"(?<=[\p{Lu}])(?=[\p{Lu}][\p{Ll}])|(?<=[^\p{Lu}])(?=[\p{Lu}])|(?<=[\p{L}])(?=[^\p{L}])", RegexOptions.Compiled);
-#endif
+	/// <param name="input">The string to process.</param>
+	/// <returns>A new string with a space inserted at each word boundary.</returns>
+	/// <remarks>
+	/// This walks by code point, for the same reason
+	/// <see cref="ReplaceNonAlphaNumericWithSpace"/> does. The regex this replaces tested
+	/// <c>\p{L}</c> and <c>\p{Lu}</c> per UTF-16 code unit, so a letter outside the Basic
+	/// Multilingual Plane read as a non-letter and had a spurious word boundary inserted
+	/// before it.
+	/// </remarks>
+	private static string SplitOnCaseChange(string input)
+	{
+		StringBuilder builder = new(input.Length);
+		int previousStart = -1;
+
+		for (int i = 0; i < input.Length;)
+		{
+			int length = CodePointLength(input, i);
+			int nextStart = i + length;
+
+			if (previousStart >= 0 && IsWordBoundary(input, previousStart, i, nextStart))
+			{
+				builder.Append(' ');
+			}
+
+			builder.Append(input, i, length);
+			previousStart = i;
+			i = nextStart;
+		}
+
+		return builder.ToString();
+	}
+
+	/// <summary>
+	/// Determines whether a word boundary falls immediately before the code point at
+	/// <paramref name="start"/>.
+	/// </summary>
+	/// <param name="input">The string being split.</param>
+	/// <param name="previousStart">The index of the preceding code point.</param>
+	/// <param name="start">The index of the code point to test.</param>
+	/// <param name="nextStart">The index of the following code point, which may be past the end.</param>
+	/// <returns><c>true</c> if a space belongs before <paramref name="start"/>; otherwise, <c>false</c>.</returns>
+	private static bool IsWordBoundary(string input, int previousStart, int start, int nextStart)
+	{
+		bool previousIsUpper = char.IsUpper(input, previousStart);
+		bool currentIsUpper = char.IsUpper(input, start);
+
+		// The tail of an acronym run that begins a new word: "XMLDoc" breaks before the "D".
+		if (previousIsUpper && currentIsUpper && nextStart < input.Length && char.IsLower(input, nextStart))
+		{
+			return true;
+		}
+
+		// The start of a capitalised word: "fooBar" breaks before the "B".
+		if (!previousIsUpper && currentIsUpper)
+		{
+			return true;
+		}
+
+		// A letter followed by a non-letter: "abc123" breaks before the "1".
+		return char.IsLetter(input, previousStart) && !char.IsLetter(input, start);
+	}
 
 	/// <summary>
 	/// Returns a copy of this string with the first character converted to lowercase.
@@ -90,8 +162,10 @@ public static partial class CaseConverter
 	/// <returns>A new string in Title Case.</returns>
 	public static string ToTitleCase(this string input)
 	{
+		Ensure.NotNull(input);
+
 		string output = input;
-		output = SplitOnCaseChangeRegex().Replace(output, " ");
+		output = SplitOnCaseChange(output);
 		output = CollapseSpaces(output).Trim();
 
 		// If the input is all caps, we want to convert it to lowercase before converting to title case,
@@ -111,8 +185,22 @@ public static partial class CaseConverter
 	/// <returns><c>true</c> if all alphabetic characters are uppercase; otherwise, <c>false</c>.</returns>
 	public static bool IsAllCaps(this string output)
 	{
-		string alphaChars = NonAlphaRegex().Replace(output, string.Empty);
-		return alphaChars.All(char.IsUpper);
+		Ensure.NotNull(output);
+
+		for (int i = 0; i < output.Length;)
+		{
+			int length = CodePointLength(output, i);
+
+			if (char.IsLetter(output, i) && !char.IsUpper(output, i))
+			{
+				return false;
+			}
+
+			i += length;
+		}
+
+		// A string with no letters at all is vacuously all caps.
+		return true;
 	}
 
 	/// <summary>
@@ -147,8 +235,8 @@ public static partial class CaseConverter
 		Ensure.NotNull(input);
 
 		string output = input;
-		output = NonAlphaNumericRegex().Replace(output, " ");
-		output = SplitOnCaseChangeRegex().Replace(output, " ");
+		output = ReplaceNonAlphaNumericWithSpace(output);
+		output = SplitOnCaseChange(output);
 		output = output.ToTitleCase();
 #if NETSTANDARD2_0
 		output = output.Replace(" ", string.Empty);
@@ -213,8 +301,8 @@ public static partial class CaseConverter
 		Ensure.NotNull(input);
 
 		string output = input.Trim();
-		output = NonAlphaNumericRegex().Replace(output, " ");
-		output = SplitOnCaseChangeRegex().Replace(output, " ").ToUpperInvariant();
+		output = ReplaceNonAlphaNumericWithSpace(output);
+		output = SplitOnCaseChange(output).ToUpperInvariant();
 		output = CollapseSpaces(output).Trim();
 #if NETSTANDARD2_0
 		output = output.Replace(" ", "_");
