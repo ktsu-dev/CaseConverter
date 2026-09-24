@@ -1,6 +1,8 @@
-## v1.4.7 (patch)
+## v1.5.0 (minor)
 
-Changes since v1.4.6:
+Changes since v1.4.0:
 
-- Bump the ktsu group with 9 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Preserve letters outside the BMP in every case conversion ([@Claude](https://github.com/Claude))
+- Gate Dependabot auto-merge on CI actually being green ([@Claude](https://github.com/Claude))
+- ci: adopt the consolidated .NET workflow [patch] ([@Claude](https://github.com/Claude))
 
