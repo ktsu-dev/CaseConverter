@@ -43,7 +43,9 @@ public class CaseConverterTests
 	{
 		string input = "  the   quick   brown   FOX  ";
 		string result = input.ToTitleCase();
-		Assert.AreEqual("The Quick Brown FOX", result);
+
+		// "FOX" is normalized rather than kept as an acronym, the same as it would be on its own.
+		Assert.AreEqual("The Quick Brown Fox", result);
 	}
 
 	[TestMethod]
@@ -83,7 +85,53 @@ public class CaseConverterTests
 	{
 		string input = "the quick Brown FOX";
 		string result = input.ToTitleCase();
-		Assert.AreEqual("The Quick Brown FOX", result);
+
+		// "FOX" is normalized rather than kept as an acronym, the same as it would be on its own.
+		Assert.AreEqual("The Quick Brown Fox", result);
+	}
+
+	// An all-caps word used to be normalized only when the entire string was all caps, because
+	// ToTitleCase tested IsAllCaps against the whole string. The same token therefore converted two
+	// different ways depending on its neighbours: "MAX_SIZE" gave "MaxSize" but "set MAX_SIZE" gave
+	// "SetMAXSIZE". Each pair below measures a word alone and beside a lowercase one, so a regression
+	// to whole-string reasoning fails the second assertion of the pair while the first still passes.
+
+	[TestMethod]
+	public void ToTitleCaseShouldNormalizeAnAllCapsWordIndependentlyOfItsNeighbours()
+	{
+		Assert.AreEqual("Http", "HTTP".ToTitleCase());
+		Assert.AreEqual("Parse Http Header", "parse HTTP header".ToTitleCase());
+	}
+
+	[TestMethod]
+	public void ToPascalCaseShouldNormalizeAnAllCapsWordIndependentlyOfItsNeighbours()
+	{
+		Assert.AreEqual("MaxSize", "MAX_SIZE".ToPascalCase());
+		Assert.AreEqual("SetMaxSize", "set MAX_SIZE".ToPascalCase());
+	}
+
+	[TestMethod]
+	public void ToCamelCaseShouldNormalizeAnAllCapsWordIndependentlyOfItsNeighbours()
+	{
+		Assert.AreEqual("url", "URL".ToCamelCase());
+		Assert.AreEqual("myUrlHandler", "my URL handler".ToCamelCase());
+	}
+
+	[TestMethod]
+	public void ToPascalCaseShouldMatchTheAcronymExampleInTheReadme()
+	{
+		// README.md has documented this result since before the neighbour dependence was found, while
+		// the library actually produced "APIResponseURL". Pinning it keeps the two from drifting again.
+		Assert.AreEqual("ApiResponseUrl", "API_response_URL".ToPascalCase());
+	}
+
+	[TestMethod]
+	public void ToPascalCaseShouldAgreeWithToMacroCaseOnWordBoundaries()
+	{
+		// The macro and snake paths never had the neighbour dependence, so they are the reference the
+		// title-case-derived converters are brought back into agreement with.
+		Assert.AreEqual("SET_MAX_SIZE", "set MAX_SIZE".ToMacroCase());
+		Assert.AreEqual("SetMaxSize", "set MAX_SIZE".ToPascalCase());
 	}
 
 	[TestMethod]
