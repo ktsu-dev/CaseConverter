@@ -1,6 +1,4 @@
-## v1.6.0 (minor)
+## v1.6.0
 
-Changes since v1.5.0:
-
-- Normalize an all-caps word per word, not per string [minor] ([@Claude](https://github.com/Claude))
+No significant changes detected since v1.6.0.
 
