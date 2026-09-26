@@ -126,16 +126,16 @@ public static partial class CaseConverter
 	/// </summary>
 	/// <param name="input">The string to convert.</param>
 	/// <returns>A new string with the first character converted to lowercase.</returns>
+	/// <remarks>
+	/// The first character is the first code point, so a letter outside the Basic Multilingual
+	/// Plane is case-mapped as a whole rather than through its high surrogate alone, which would
+	/// leave it unchanged.
+	/// </remarks>
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "Lowercasing the first character is the point of this method.")]
 	public static string ToLowercaseFirstChar(this string input)
 	{
 		Ensure.NotNull(input);
-#if NETSTANDARD2_0
-#pragma warning disable IDE0057 // Substring cannot be simplified in netstandard2.0
-		return CollapseSpaces(input.Length > 0 ? char.ToLowerInvariant(input[0]) + input.Substring(1) : input).Trim();
-#pragma warning restore IDE0057
-#else
-		return CollapseSpaces(input.Length > 0 ? char.ToLowerInvariant(input[0]) + input[1..] : input).Trim();
-#endif
+		return CollapseSpaces(MapFirstCodePoint(input, static first => first.ToLowerInvariant())).Trim();
 	}
 
 	/// <summary>
@@ -143,15 +143,36 @@ public static partial class CaseConverter
 	/// </summary>
 	/// <param name="input">The string to convert.</param>
 	/// <returns>A new string with the first character converted to uppercase.</returns>
+	/// <remarks>
+	/// The first character is the first code point, for the same reason as in
+	/// <see cref="ToLowercaseFirstChar(string)"/>.
+	/// </remarks>
 	public static string ToUppercaseFirstChar(this string input)
 	{
 		Ensure.NotNull(input);
+		return CollapseSpaces(MapFirstCodePoint(input, static first => first.ToUpperInvariant())).Trim();
+	}
+
+	/// <summary>
+	/// Applies <paramref name="map"/> to the first code point of <paramref name="input"/>, leaving the rest unchanged.
+	/// </summary>
+	/// <param name="input">The string to process.</param>
+	/// <param name="map">The mapping to apply to the first code point, given as a string of one or two UTF-16 code units.</param>
+	/// <returns>A new string with the first code point mapped, or <paramref name="input"/> if it is empty.</returns>
+	private static string MapFirstCodePoint(string input, Func<string, string> map)
+	{
+		if (input.Length == 0)
+		{
+			return input;
+		}
+
+		int length = CodePointLength(input, 0);
 #if NETSTANDARD2_0
 #pragma warning disable IDE0057 // Substring cannot be simplified in netstandard2.0
-		return CollapseSpaces(input.Length > 0 ? char.ToUpperInvariant(input[0]) + input.Substring(1) : input).Trim();
+		return map(input.Substring(0, length)) + input.Substring(length);
 #pragma warning restore IDE0057
 #else
-		return CollapseSpaces(input.Length > 0 ? char.ToUpperInvariant(input[0]) + input[1..] : input).Trim();
+		return map(input[..length]) + input[length..];
 #endif
 	}
 
