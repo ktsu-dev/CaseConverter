@@ -156,10 +156,46 @@ public static partial class CaseConverter
 	}
 
 	/// <summary>
+	/// Lowercases every space separated word whose letters are all uppercase, leaving the rest alone.
+	/// </summary>
+	/// <param name="input">The string to process, already split into space separated words.</param>
+	/// <returns>A new string with each all-caps word lowercased.</returns>
+	/// <remarks>
+	/// <see cref="TextInfo.ToTitleCase(string)"/> preserves a word that is all caps, on the assumption
+	/// that it is an acronym. Lowering such a word first is what normalizes it instead, and deciding
+	/// this per word rather than for the whole string is what keeps a word's result independent of its
+	/// neighbours.
+	/// </remarks>
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "Lowercasing is the point: TextInfo.ToTitleCase then capitalizes the first letter of each word.")]
+	private static string LowercaseAllCapsWords(string input)
+	{
+		string[] words = input.Split(' ');
+		StringBuilder builder = new(input.Length);
+
+		for (int i = 0; i < words.Length; i++)
+		{
+			if (i > 0)
+			{
+				builder.Append(' ');
+			}
+
+			string word = words[i];
+			builder.Append(IsAllCaps(word) ? word.ToLowerInvariant() : word);
+		}
+
+		return builder.ToString();
+	}
+
+	/// <summary>
 	/// Returns a copy of this string converted to Title Case. Example: "the quick brown fox" becomes "The Quick Brown Fox".
 	/// </summary>
 	/// <param name="input">The string to convert.</param>
 	/// <returns>A new string in Title Case.</returns>
+	/// <remarks>
+	/// An all-caps word is normalized rather than preserved as an acronym, so <c>"HTTP"</c> becomes
+	/// <c>"Http"</c> and <c>"parse HTTP header"</c> becomes <c>"Parse Http Header"</c>. The decision is
+	/// made per word, so a word converts the same way whatever else is in the string.
+	/// </remarks>
 	public static string ToTitleCase(this string input)
 	{
 		Ensure.NotNull(input);
@@ -168,12 +204,10 @@ public static partial class CaseConverter
 		output = SplitOnCaseChange(output);
 		output = CollapseSpaces(output).Trim();
 
-		// If the input is all caps, we want to convert it to lowercase before converting to title case,
-		// as TextInfo.ToTitleCase preserves words that are all caps assuming they are acronyms.
-		if (IsAllCaps(output))
-		{
-			output = output.ToLowerInvariant();
-		}
+		// TextInfo.ToTitleCase preserves words that are all caps assuming they are acronyms, so lowercase
+		// them first. This is done per word rather than only when the whole string is all caps, because
+		// otherwise the same word converts two different ways depending on its neighbours.
+		output = LowercaseAllCapsWords(output);
 
 		return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(output);
 	}
@@ -230,6 +264,12 @@ public static partial class CaseConverter
 	/// </summary>
 	/// <param name="input">The string to convert.</param>
 	/// <returns>A new string in PascalCase.</returns>
+	/// <remarks>
+	/// An all-caps word is normalized rather than preserved as an acronym, so <c>"MAX_SIZE"</c> and
+	/// <c>"set MAX_SIZE"</c> become <c>"MaxSize"</c> and <c>"SetMaxSize"</c>. The decision is made per
+	/// word by <see cref="ToTitleCase(string)"/>, so a word converts the same way whatever else is in
+	/// the string.
+	/// </remarks>
 	public static string ToPascalCase(this string input)
 	{
 		Ensure.NotNull(input);
@@ -252,6 +292,12 @@ public static partial class CaseConverter
 	/// </summary>
 	/// <param name="input">The string to convert.</param>
 	/// <returns>A new string in camelCase.</returns>
+	/// <remarks>
+	/// An all-caps word is normalized rather than preserved as an acronym, so <c>"URL"</c> and
+	/// <c>"my URL handler"</c> become <c>"url"</c> and <c>"myUrlHandler"</c>. The decision is made per
+	/// word by <see cref="ToTitleCase(string)"/>, so a word converts the same way whatever else is in
+	/// the string.
+	/// </remarks>
 	public static string ToCamelCase(this string input)
 	{
 		Ensure.NotNull(input);
