@@ -68,7 +68,19 @@ public static partial class CaseConverter
 	/// Multilingual Plane read as a non-letter and had a spurious word boundary inserted
 	/// before it.
 	/// </remarks>
-	private static string SplitOnCaseChange(string input)
+	private static string SplitOnCaseChange(string input) => SplitOnCaseChange(input, breakBeforeAnyNonLetter: true);
+
+	/// <summary>
+	/// Inserts a space at each case change, and before whatever follows a letter as
+	/// <paramref name="breakBeforeAnyNonLetter"/> selects.
+	/// </summary>
+	/// <param name="input">The string to process.</param>
+	/// <param name="breakBeforeAnyNonLetter">
+	/// <c>true</c> to break between a letter and any non-letter that follows it; <c>false</c> to break
+	/// only between a letter and a digit, leaving punctuation attached to the word before it.
+	/// </param>
+	/// <returns>A new string with a space inserted at each word boundary.</returns>
+	private static string SplitOnCaseChange(string input, bool breakBeforeAnyNonLetter)
 	{
 		StringBuilder builder = new(input.Length);
 		int previousStart = -1;
@@ -78,7 +90,7 @@ public static partial class CaseConverter
 			int length = CodePointLength(input, i);
 			int nextStart = i + length;
 
-			if (previousStart >= 0 && IsWordBoundary(input, previousStart, i, nextStart))
+			if (previousStart >= 0 && IsWordBoundary(input, previousStart, i, nextStart, breakBeforeAnyNonLetter))
 			{
 				builder.Append(' ');
 			}
@@ -99,9 +111,13 @@ public static partial class CaseConverter
 	/// <param name="previousStart">The index of the preceding code point.</param>
 	/// <param name="start">The index of the code point to test.</param>
 	/// <param name="nextStart">The index of the following code point, which may be past the end.</param>
+	/// <param name="breakBeforeAnyNonLetter">
+	/// <c>true</c> to break between a letter and any non-letter; <c>false</c> to break only between a letter and a digit.
+	/// </param>
 	/// <returns><c>true</c> if a space belongs before <paramref name="start"/>; otherwise, <c>false</c>.</returns>
-	private static bool IsWordBoundary(string input, int previousStart, int start, int nextStart)
+	private static bool IsWordBoundary(string input, int previousStart, int start, int nextStart, bool breakBeforeAnyNonLetter)
 	{
+		bool previousIsLetter = char.IsLetter(input, previousStart);
 		bool previousIsUpper = char.IsUpper(input, previousStart);
 		bool currentIsUpper = char.IsUpper(input, start);
 
@@ -111,14 +127,21 @@ public static partial class CaseConverter
 			return true;
 		}
 
-		// The start of a capitalised word: "fooBar" breaks before the "B".
-		if (!previousIsUpper && currentIsUpper)
+		// The start of a capitalised word: "fooBar" breaks before the "B". Only a letter or digit can
+		// end the word before it, so "(Hello" and "don'T" do not split away from their punctuation.
+		if (!previousIsUpper && currentIsUpper && (previousIsLetter || char.IsDigit(input, previousStart)))
 		{
 			return true;
 		}
 
-		// A letter followed by a non-letter: "abc123" breaks before the "1".
-		return char.IsLetter(input, previousStart) && !char.IsLetter(input, start);
+		// A letter followed by a non-letter: "abc123" breaks before the "1", and, when asked to,
+		// "abc_def" breaks before the "_".
+		if (!previousIsLetter || char.IsLetter(input, start))
+		{
+			return false;
+		}
+
+		return breakBeforeAnyNonLetter || char.IsDigit(input, start);
 	}
 
 	/// <summary>
@@ -195,13 +218,18 @@ public static partial class CaseConverter
 	/// An all-caps word is normalized rather than preserved as an acronym, so <c>"HTTP"</c> becomes
 	/// <c>"Http"</c> and <c>"parse HTTP header"</c> becomes <c>"Parse Http Header"</c>. The decision is
 	/// made per word, so a word converts the same way whatever else is in the string.
+	/// <para>
+	/// Punctuation stays attached to the word it follows, so <c>"hello, world"</c> becomes
+	/// <c>"Hello, World"</c> and <c>"don't stop"</c> becomes <c>"Don't Stop"</c>. An underscore
+	/// separates words, so <c>"foo_bar"</c> becomes <c>"Foo Bar"</c>.
+	/// </para>
 	/// </remarks>
 	public static string ToTitleCase(this string input)
 	{
 		Ensure.NotNull(input);
 
-		string output = input;
-		output = SplitOnCaseChange(output);
+		string output = input.Replace('_', ' ');
+		output = SplitOnCaseChange(output, breakBeforeAnyNonLetter: false);
 		output = CollapseSpaces(output).Trim();
 
 		// TextInfo.ToTitleCase preserves words that are all caps assuming they are acronyms, so lowercase
