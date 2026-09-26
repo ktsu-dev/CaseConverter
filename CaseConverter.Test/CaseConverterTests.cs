@@ -288,6 +288,39 @@ public class CaseConverterTests
 	}
 
 	[TestMethod]
+	public void ToCamelCaseShouldLowercaseAnAstralFirstLetter()
+	{
+		string input = $"{DeseretCapitalLongI}abc";
+		string result = input.ToCamelCase();
+		Assert.AreEqual($"{DeseretSmallLongI}abc", result, "A first letter outside the BMP must be lowercased like any other.");
+	}
+
+	[TestMethod]
+	public void ToCamelCaseShouldLowercaseAnAstralAllCapsFirstWord()
+	{
+		string input = $"{DeseretCapitalLongI}{DeseretCapitalLongI} foo";
+		string result = input.ToCamelCase();
+		Assert.AreEqual($"{DeseretSmallLongI}{DeseretSmallLongI}Foo", result);
+		Assert.AreEqual("xxFoo", "XX foo".ToCamelCase(), "The BMP analogue this case is matched against.");
+	}
+
+	[TestMethod]
+	public void ToLowercaseFirstCharShouldLowercaseAnAstralFirstLetter()
+	{
+		string input = $"{DeseretCapitalLongI}abc";
+		string result = input.ToLowercaseFirstChar();
+		Assert.AreEqual($"{DeseretSmallLongI}abc", result);
+	}
+
+	[TestMethod]
+	public void ToUppercaseFirstCharShouldUppercaseAnAstralFirstLetter()
+	{
+		string input = $"{DeseretSmallLongI}abc";
+		string result = input.ToUppercaseFirstChar();
+		Assert.AreEqual($"{DeseretCapitalLongI}abc", result);
+	}
+
+	[TestMethod]
 	public void ToSnakeCaseShouldStillDropAstralCharactersThatAreNotLetters()
 	{
 		// U+1F600 GRINNING FACE is a surrogate pair but not a letter, so it is a separator like
