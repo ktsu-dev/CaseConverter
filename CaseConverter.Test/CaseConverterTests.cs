@@ -103,6 +103,43 @@ public class CaseConverterTests
 		Assert.AreEqual("Parse Http Header", "parse HTTP header".ToTitleCase());
 	}
 
+	// ToTitleCase used to split before every non-letter, so punctuation became a word of its own and
+	// TextInfo.ToTitleCase capitalized the letter after it.
+
+	[TestMethod]
+	public void ToTitleCaseShouldKeepACommaWithTheWordBeforeIt()
+	{
+		Assert.AreEqual("Hello, World", "hello, world".ToTitleCase());
+	}
+
+	[TestMethod]
+	public void ToTitleCaseShouldKeepAnApostropheInsideItsWord()
+	{
+		Assert.AreEqual("Don't Stop", "don't stop".ToTitleCase());
+	}
+
+	[TestMethod]
+	public void ToTitleCaseShouldTreatAnUnderscoreAsAWordSeparator()
+	{
+		Assert.AreEqual("Foo Bar", "foo_bar".ToTitleCase());
+	}
+
+	[TestMethod]
+	public void ToTitleCaseShouldKeepOtherPunctuationInPlace()
+	{
+		Assert.AreEqual("Part 1: Setup", "part 1: setup".ToTitleCase());
+		Assert.AreEqual("What's New?", "what's new?".ToTitleCase());
+		Assert.AreEqual("(Hello) World", "(Hello) world".ToTitleCase());
+	}
+
+	[TestMethod]
+	public void ToTitleCaseShouldStillSplitOnCaseChangesAndDigits()
+	{
+		Assert.AreEqual("Foo Bar", "fooBar".ToTitleCase());
+		Assert.AreEqual("Xml Doc", "XMLDoc".ToTitleCase());
+		Assert.AreEqual("Abc 123", "abc123".ToTitleCase());
+	}
+
 	[TestMethod]
 	public void ToPascalCaseShouldNormalizeAnAllCapsWordIndependentlyOfItsNeighbours()
 	{
