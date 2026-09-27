@@ -103,6 +103,19 @@ public class CaseConverterTests
 		Assert.AreEqual("Parse Http Header", "parse HTTP header".ToTitleCase());
 	}
 
+	[TestMethod]
+	[DataRow("foo-BAR", "Foo-Bar")]
+	[DataRow("FOO-BAR", "Foo-Bar")]
+	[DataRow("API-key", "Api-Key")]
+	[DataRow("foo.BAR", "Foo.Bar")]
+	[DataRow("HELLO\tworld", "Hello\tWorld")]
+	[DataRow("HELLO world", "Hello World")]
+	[DataRow("DON'T stop", "Don't Stop")]
+	public void ToTitleCaseShouldNormalizeAllCapsWordsJoinedByPunctuationOrTabs(string input, string expected)
+	{
+		Assert.AreEqual(expected, input.ToTitleCase());
+	}
+
 	// ToTitleCase used to split before every non-letter, so punctuation became a word of its own and
 	// TextInfo.ToTitleCase capitalized the letter after it.
 
@@ -391,18 +404,5 @@ public class CaseConverterTests
 		string input = "emoji \U0001F600 here";
 		string result = input.ToSnakeCase();
 		Assert.AreEqual("emoji_here", result);
-	}
-
-	[TestMethod]
-	[DataRow("foo-BAR", "Foo-Bar")]
-	[DataRow("FOO-BAR", "Foo-Bar")]
-	[DataRow("API-key", "Api-Key")]
-	[DataRow("foo.BAR", "Foo.Bar")]
-	[DataRow("HELLO\tworld", "Hello\tWorld")]
-	[DataRow("HELLO world", "Hello World")]
-	[DataRow("DON'T stop", "Don't Stop")]
-	public void ToTitleCaseShouldNormalizeAllCapsWordsJoinedByPunctuationOrTabs(string input, string expected)
-	{
-		Assert.AreEqual(expected, input.ToTitleCase());
 	}
 }
