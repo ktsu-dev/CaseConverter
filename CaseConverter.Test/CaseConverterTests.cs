@@ -392,4 +392,17 @@ public class CaseConverterTests
 		string result = input.ToSnakeCase();
 		Assert.AreEqual("emoji_here", result);
 	}
+
+	[TestMethod]
+	[DataRow("foo-BAR", "Foo-Bar")]
+	[DataRow("FOO-BAR", "Foo-Bar")]
+	[DataRow("API-key", "Api-Key")]
+	[DataRow("foo.BAR", "Foo.Bar")]
+	[DataRow("HELLO\tworld", "Hello\tWorld")]
+	[DataRow("HELLO world", "Hello World")]
+	[DataRow("DON'T stop", "Don't Stop")]
+	public void ToTitleCaseShouldNormalizeAllCapsWordsJoinedByPunctuationOrTabs(string input, string expected)
+	{
+		Assert.AreEqual(expected, input.ToTitleCase());
+	}
 }

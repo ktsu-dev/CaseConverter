@@ -204,35 +204,66 @@ public static partial class CaseConverter
 	}
 
 	/// <summary>
-	/// Lowercases every space separated word whose letters are all uppercase, leaving the rest alone.
+	/// Lowercases every word whose letters are all uppercase, leaving the rest alone.
 	/// </summary>
-	/// <param name="input">The string to process, already split into space separated words.</param>
+	/// <param name="input">The string to process.</param>
 	/// <returns>A new string with each all-caps word lowercased.</returns>
 	/// <remarks>
 	/// <see cref="TextInfo.ToTitleCase(string)"/> preserves a word that is all caps, on the assumption
 	/// that it is an acronym. Lowering such a word first is what normalizes it instead, and deciding
 	/// this per word rather than for the whole string is what keeps a word's result independent of its
 	/// neighbours.
+	/// <para>
+	/// A word here is a maximal run of letters and apostrophes, which is what
+	/// <see cref="TextInfo.ToTitleCase(string)"/> treats as a word. Splitting only on spaces would miss
+	/// the words it finds either side of a <c>'-'</c>, a <c>'.'</c> or a tab, so <c>"foo-BAR"</c> would
+	/// keep <c>"BAR"</c> as an acronym while <c>"FOO-BAR"</c> normalized it.
+	/// </para>
 	/// </remarks>
 	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "Lowercasing is the point: TextInfo.ToTitleCase then capitalizes the first letter of each word.")]
 	private static string LowercaseAllCapsWords(string input)
 	{
-		string[] words = input.Split(' ');
 		StringBuilder builder = new(input.Length);
+		int i = 0;
 
-		for (int i = 0; i < words.Length; i++)
+		while (i < input.Length)
 		{
-			if (i > 0)
+			if (!IsWordCharacter(input, i))
 			{
-				builder.Append(' ');
+				builder.Append(input[i]);
+				i++;
+				continue;
 			}
 
-			string word = words[i];
+			int wordStart = i;
+
+			while (i < input.Length && IsWordCharacter(input, i))
+			{
+				i += CodePointLength(input, i);
+			}
+
+#if NETSTANDARD2_0
+#pragma warning disable IDE0057 // Substring cannot be simplified in netstandard2.0
+			string word = input.Substring(wordStart, i - wordStart);
+#pragma warning restore IDE0057
+#else
+			string word = input[wordStart..i];
+#endif
 			builder.Append(IsAllCaps(word) ? word.ToLowerInvariant() : word);
 		}
 
 		return builder.ToString();
 	}
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> belongs to a word, as
+	/// <see cref="LowercaseAllCapsWords"/> defines one: a letter or an apostrophe.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <returns><c>true</c> if the code point is part of a word; otherwise, <c>false</c>.</returns>
+	private static bool IsWordCharacter(string input, int index) =>
+		char.IsLetter(input, index) || input[index] is '\'' or '\u2019';
 
 	/// <summary>
 	/// Returns a copy of this string converted to Title Case. Example: "the quick brown fox" becomes "The Quick Brown Fox".
