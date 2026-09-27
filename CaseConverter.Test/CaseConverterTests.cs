@@ -358,6 +358,32 @@ public class CaseConverterTests
 	}
 
 	[TestMethod]
+	[DataRow(" hello", "Hello")]
+	[DataRow("\thello", "Hello")]
+	[DataRow("  hello  ", "Hello")]
+	public void ToUppercaseFirstCharShouldSkipLeadingWhitespace(string input, string expected)
+	{
+		Assert.AreEqual(expected, input.ToUppercaseFirstChar());
+	}
+
+	[TestMethod]
+	[DataRow(" Hello", "hello")]
+	[DataRow("\tHello", "hello")]
+	[DataRow("  Hello  ", "hello")]
+	public void ToLowercaseFirstCharShouldSkipLeadingWhitespace(string input, string expected)
+	{
+		Assert.AreEqual(expected, input.ToLowercaseFirstChar());
+	}
+
+	[TestMethod]
+	public void FirstCharHelpersShouldCollapseRunsOfSpaces()
+	{
+		// Documented behaviour: both helpers collapse runs of spaces to one.
+		Assert.AreEqual("A b", "a  b".ToUppercaseFirstChar());
+		Assert.AreEqual("a b", "A  b".ToLowercaseFirstChar());
+	}
+
+	[TestMethod]
 	public void ToSnakeCaseShouldStillDropAstralCharactersThatAreNotLetters()
 	{
 		// U+1F600 GRINNING FACE is a surrogate pair but not a letter, so it is a separator like

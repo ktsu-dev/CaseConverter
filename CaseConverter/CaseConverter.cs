@@ -145,11 +145,13 @@ public static partial class CaseConverter
 	}
 
 	/// <summary>
-	/// Returns a copy of this string with the first character converted to lowercase.
+	/// Returns a copy of this string, trimmed and with runs of spaces collapsed to one, with the first character converted to lowercase.
 	/// </summary>
 	/// <param name="input">The string to convert.</param>
 	/// <returns>A new string with the first character converted to lowercase.</returns>
 	/// <remarks>
+	/// The string is trimmed before the first character is chosen, so leading whitespace does not
+	/// take the place of the first letter.
 	/// The first character is the first code point, so a letter outside the Basic Multilingual
 	/// Plane is case-mapped as a whole rather than through its high surrogate alone, which would
 	/// leave it unchanged.
@@ -158,22 +160,24 @@ public static partial class CaseConverter
 	public static string ToLowercaseFirstChar(this string input)
 	{
 		Ensure.NotNull(input);
-		return CollapseSpaces(MapFirstCodePoint(input, static first => first.ToLowerInvariant())).Trim();
+		return MapFirstCodePoint(CollapseSpaces(input).Trim(), static first => first.ToLowerInvariant());
 	}
 
 	/// <summary>
-	/// Returns a copy of this string with the first character converted to uppercase.
+	/// Returns a copy of this string, trimmed and with runs of spaces collapsed to one, with the first character converted to uppercase.
 	/// </summary>
 	/// <param name="input">The string to convert.</param>
 	/// <returns>A new string with the first character converted to uppercase.</returns>
 	/// <remarks>
+	/// The string is trimmed before the first character is chosen, so leading whitespace does not
+	/// take the place of the first letter.
 	/// The first character is the first code point, for the same reason as in
 	/// <see cref="ToLowercaseFirstChar(string)"/>.
 	/// </remarks>
 	public static string ToUppercaseFirstChar(this string input)
 	{
 		Ensure.NotNull(input);
-		return CollapseSpaces(MapFirstCodePoint(input, static first => first.ToUpperInvariant())).Trim();
+		return MapFirstCodePoint(CollapseSpaces(input).Trim(), static first => first.ToUpperInvariant());
 	}
 
 	/// <summary>
