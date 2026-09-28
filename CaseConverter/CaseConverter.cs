@@ -319,7 +319,53 @@ public static partial class CaseConverter
 		// otherwise the same word converts two different ways depending on its neighbours.
 		output = LowercaseAllCapsWords(output);
 
-		return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(output);
+		return TitleCaseKeepingTypographicApostrophes(output);
+	}
+
+	/// <summary>
+	/// Applies <see cref="TextInfo.ToTitleCase(string)"/>, treating an in-word U+2019 the same as an ASCII apostrophe.
+	/// </summary>
+	/// <param name="input">The string to convert.</param>
+	/// <returns>A new string in Title Case.</returns>
+	/// <remarks>
+	/// <see cref="TextInfo.ToTitleCase(string)"/> keeps the letter after an ASCII <c>'</c> lowercase, but
+	/// treats U+2019 as a word separator, so <c>"don’t"</c> would become <c>"Don’T"</c>. Each in-word
+	/// U+2019 is swapped for <c>'</c> before the call and restored at the same index afterwards, which is
+	/// safe because <see cref="TextInfo.ToTitleCase(string)"/> does not change the string's length.
+	/// </remarks>
+	private static string TitleCaseKeepingTypographicApostrophes(string input)
+	{
+		char[] characters = input.ToCharArray();
+		List<int> typographicApostrophes = [];
+		int previousStart = -1;
+
+		for (int i = 0; i < input.Length;)
+		{
+			int nextStart = i + CodePointLength(input, i);
+
+			if (input[i] == '’' && IsApostropheWithinWord(input, previousStart, i, nextStart))
+			{
+				characters[i] = '\'';
+				typographicApostrophes.Add(i);
+			}
+
+			previousStart = i;
+			i = nextStart;
+		}
+
+		if (typographicApostrophes.Count == 0)
+		{
+			return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(input);
+		}
+
+		char[] output = CultureInfo.InvariantCulture.TextInfo.ToTitleCase(new string(characters)).ToCharArray();
+
+		foreach (int index in typographicApostrophes)
+		{
+			output[index] = '’';
+		}
+
+		return new string(output);
 	}
 
 	/// <summary>

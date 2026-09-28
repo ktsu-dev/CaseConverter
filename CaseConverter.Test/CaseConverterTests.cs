@@ -131,6 +131,18 @@ public class CaseConverterTests
 		Assert.AreEqual("Don't Stop", "don't stop".ToTitleCase());
 	}
 
+	// TextInfo.ToTitleCase only keeps the letter after an ASCII apostrophe lowercase; it treated the
+	// typographic apostrophe U+2019 as a separator and gave "Don’T Stop".
+
+	[TestMethod]
+	[DataRow("don’t stop", "Don’t Stop")]
+	[DataRow("it’s fine", "It’s Fine")]
+	[DataRow("’quoted’ word", "’Quoted’ Word")]
+	public void ToTitleCaseShouldKeepATypographicApostropheInsideItsWord(string input, string expected)
+	{
+		Assert.AreEqual(expected, input.ToTitleCase());
+	}
+
 	[TestMethod]
 	public void ToTitleCaseShouldTreatAnUnderscoreAsAWordSeparator()
 	{
