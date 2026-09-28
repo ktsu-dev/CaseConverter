@@ -186,15 +186,19 @@ public static partial class CaseConverter
 		bool previousIsUpper = char.IsUpper(input, previousStart);
 		bool currentIsUpper = char.IsUpper(input, start);
 
+		// A lowercase letter with no uppercase form, such as "ß" or "ﬁ", survives uppercasing, so it
+		// takes the case of the nearest letter that has one: "STRAßE" is a single all-caps word.
+		int casedNextStart = SkipLowercaseWithNoUppercase(input, nextStart);
+
 		// The tail of an acronym run that begins a new word: "XMLDoc" breaks before the "D".
-		if (previousIsUpper && currentIsUpper && nextStart < input.Length && char.IsLower(input, nextStart))
+		if (previousIsUpper && currentIsUpper && casedNextStart < input.Length && char.IsLower(input, casedNextStart))
 		{
 			return true;
 		}
 
 		// The start of a capitalised word: "fooBar" breaks before the "B". Only a letter or digit can
 		// end the word before it, so "(Hello" and "don'T" do not split away from their punctuation.
-		if (!previousIsUpper && currentIsUpper && (previousIsLetter || char.IsDigit(input, previousStart)))
+		if (EndsWordThatIsNotUppercase(input, previousStart) && currentIsUpper && (previousIsLetter || char.IsDigit(input, previousStart)))
 		{
 			return true;
 		}
@@ -207,6 +211,84 @@ public static partial class CaseConverter
 		}
 
 		return breakBeforeAnyNonLetter || char.IsDigit(input, start);
+	}
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> is a lowercase letter that
+	/// uppercasing leaves unchanged, such as <c>"ß"</c>, <c>"ﬁ"</c> or <c>"ŉ"</c>.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <returns><c>true</c> if the code point is lowercase and has no uppercase form; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// Such a letter is still present, and still lowercase, in the output of
+	/// <see cref="ToMacroCase(string)"/>, so it must not count as lowercase when the words of an
+	/// all-caps string are found again.
+	/// </remarks>
+	private static bool IsLowercaseWithNoUppercase(string input, int index)
+	{
+		if (!char.IsLower(input, index))
+		{
+			return false;
+		}
+
+#if NETSTANDARD2_0
+#pragma warning disable IDE0057 // Substring cannot be simplified in netstandard2.0
+		string codePoint = input.Substring(index, CodePointLength(input, index));
+#pragma warning restore IDE0057
+#else
+		string codePoint = input[index..(index + CodePointLength(input, index))];
+#endif
+		return string.Equals(codePoint.ToUpperInvariant(), codePoint, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// Returns the index of the first code point at or after <paramref name="index"/> that is not a
+	/// lowercase letter with no uppercase form.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index to start from, which may be past the end.</param>
+	/// <returns>The index found, or the length of <paramref name="input"/> if there is none.</returns>
+	private static int SkipLowercaseWithNoUppercase(string input, int index)
+	{
+		while (index < input.Length && IsLowercaseWithNoUppercase(input, index))
+		{
+			index += CodePointLength(input, index);
+		}
+
+		return index;
+	}
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> ends a word that is not uppercase,
+	/// so that a capital after it starts a new word.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the code point before the capital.</param>
+	/// <returns><c>true</c> if a capital after the code point starts a new word; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// A lowercase letter with no uppercase form takes the case of the nearest letter before it in the
+	/// same word, so <c>"STRAßE"</c> does not break before the <c>"E"</c> while <c>"großFoo"</c> still
+	/// breaks before the <c>"F"</c>. With no such letter, as in <c>"ﬁLE"</c>, it does not end a word.
+	/// </remarks>
+	private static bool EndsWordThatIsNotUppercase(string input, int index)
+	{
+		if (!IsLowercaseWithNoUppercase(input, index))
+		{
+			return !char.IsUpper(input, index);
+		}
+
+		for (int i = index; i > 0;)
+		{
+			i -= i >= 2 && char.IsSurrogatePair(input, i - 2) ? 2 : 1;
+
+			if (!IsLowercaseWithNoUppercase(input, i))
+			{
+				return char.IsLetter(input, i) && !char.IsUpper(input, i);
+			}
+		}
+
+		return false;
 	}
 
 	/// <summary>
@@ -457,7 +539,9 @@ public static partial class CaseConverter
 		{
 			int length = CodePointLength(output, i);
 
-			if (char.IsLetter(output, i) && !char.IsUpper(output, i))
+			// A lowercase letter with no uppercase form, such as "ß", is left as it is by uppercasing,
+			// so it does not stop "STRAßE" from being all caps.
+			if (char.IsLetter(output, i) && !char.IsUpper(output, i) && !IsLowercaseWithNoUppercase(output, i))
 			{
 				return false;
 			}
