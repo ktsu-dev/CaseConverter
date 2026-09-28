@@ -1,3 +1,7 @@
+## v1.8.2
+
+No significant changes detected since v1.8.2.
+
 ## v1.8.2 (patch)
 
 Changes since v1.8.1:
@@ -98,14 +102,18 @@ Changes since v1.3.0:
 - docs: correct README, DESCRIPTION and TAGS metadata ([@matt-edmondson](https://github.com/matt-edmondson))
 - Stop Update SDKs failing when there is nothing to update ([@matt-edmondson](https://github.com/matt-edmondson))
 - Fix build for ktsu.Sdk 2.27.0 analyzers: Polyfill PrivateAssets (KTSU0007), direct netstandard framework package refs (KTSU0001) [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 - Sync .editorconfig ([@KtsuTools](https://github.com/KtsuTools))
 - Sync global.json ([@KtsuTools](https://github.com/KtsuTools))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 - chore: update ktsu.Sdk to 2.21.1 [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
 - chore: remove source link package references ([@matt-edmondson](https://github.com/matt-edmondson))
 - Remove unused static import and clean up package references ([@matt-edmondson](https://github.com/matt-edmondson))
 - Add TAGS.md with NuGet package tags ([@matt-edmondson](https://github.com/matt-edmondson))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 - Refactor permissions in dotnet.yml for minimal access; add SonarLint configuration in settings.json ([@matt-edmondson](https://github.com/matt-edmondson))
 - Remove legacy build scripts ([@matt-edmondson](https://github.com/matt-edmondson))
+- Remove .github\workflows\project.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor null checks to use Ensure.NotNull for consistency ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor project files and update test assertions for clarity ([@matt-edmondson](https://github.com/matt-edmondson))
 - Merge branch 'ktsu-dev:main' into main ([@Carl Henning Haugen](https://github.com/Carl Henning Haugen))
@@ -181,8 +189,10 @@ Changes since v1.3.28:
 Changes since v1.3.27:
 
 - Fix build for ktsu.Sdk 2.27.0 analyzers: Polyfill PrivateAssets (KTSU0007), direct netstandard framework package refs (KTSU0001) [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 - Sync .editorconfig ([@KtsuTools](https://github.com/KtsuTools))
 - Sync global.json ([@KtsuTools](https://github.com/KtsuTools))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 
 ## v1.3.27 (patch)
 
@@ -281,10 +291,13 @@ Changes since v1.3.12:
 - chore: remove source link package references ([@matt-edmondson](https://github.com/matt-edmondson))
 - Remove unused static import and clean up package references ([@matt-edmondson](https://github.com/matt-edmondson))
 - Add TAGS.md with NuGet package tags ([@matt-edmondson](https://github.com/matt-edmondson))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 
 ## v1.3.13-pre.1 (prerelease)
 
-No significant changes detected since v1.3.13.
+Changes since v1.3.12:
+
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 
 ## v1.3.12 (patch)
 
@@ -301,7 +314,11 @@ Changes since v1.3.10:
 
 ## v1.3.11-pre.1 (prerelease)
 
-No significant changes detected since v1.3.11.
+Changes since v1.3.10:
+
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.3.10 (patch)
 
@@ -383,7 +400,11 @@ Changes since v1.3.9-pre.1:
 
 ## v1.3.9-pre.1 (prerelease)
 
-No significant changes detected since v1.3.9.
+Changes since v1.3.8:
+
+- Sync scripts\update-winget-manifests.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync global.json ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync COPYRIGHT.md ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.3.8 (patch)
 
@@ -421,7 +442,10 @@ Changes since v1.3.6-pre.1:
 
 ## v1.3.6-pre.1 (prerelease)
 
-No significant changes detected since v1.3.6.
+Changes since v1.3.5:
+
+- Sync scripts\PSBuild.psm1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .gitignore ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.3.5 (patch)
 
@@ -444,7 +468,10 @@ Changes since v1.3.5-pre.1:
 
 ## v1.3.5-pre.1 (prerelease)
 
-No significant changes detected since v1.3.5.
+Changes since v1.3.4:
+
+- Sync scripts\PSBuild.psm1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.3.4 (patch)
 
@@ -484,7 +511,7 @@ Changes since v1.3.3-pre.1:
 
 ## v1.3.3-pre.1 (prerelease)
 
-No significant changes detected since v1.3.3.
+No significant changes detected since v1.3.2.
 
 ## v1.3.2 (patch)
 
@@ -546,7 +573,9 @@ No significant changes detected since v1.3.2-pre.1.
 
 ## v1.3.2-pre.1 (prerelease)
 
-No significant changes detected since v1.3.2.
+Changes since v1.3.1:
+
+- Sync scripts\PSBuild.psm1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.3.1 (patch)
 
@@ -565,7 +594,9 @@ Changes since v1.3.1-pre.1:
 
 ## v1.3.1-pre.1 (prerelease)
 
-No significant changes detected since v1.3.1.
+Changes since v1.3.0:
+
+- Sync .editorconfig ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.3.0 (minor)
 
@@ -746,7 +777,9 @@ Changes since v1.1.1-pre.1:
 
 ## v1.1.1-pre.1 (prerelease)
 
-No significant changes detected since v1.1.1.
+Changes since v1.1.0:
+
+- Sync scripts\make-changelog.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.1.0 (minor)
 
@@ -792,7 +825,9 @@ Changes since v1.0.29-pre.1:
 
 ## v1.0.29-pre.1 (prerelease)
 
-No significant changes detected since v1.0.29.
+Changes since v1.0.28-pre.1:
+
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.0.28-pre.1 (prerelease)
 
@@ -923,7 +958,7 @@ Changes since v1.0.9:
 
 ## v1.0.10-pre.1 (prerelease)
 
-Changes since v1.0.10:
+Changes since v1.0.9:
 
 - Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
 - Replace LICENSE file with LICENSE.md for improved formatting and clarity ([@matt-edmondson](https://github.com/matt-edmondson))
@@ -936,6 +971,7 @@ Changes since v1.0.10:
 - Update VERSION to 1.0.13 ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update VERSION to 1.0.12 ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update VERSION to 1.0.11 ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update VERSION to 1.0.10 ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.0.9 (patch)
 
@@ -1007,6 +1043,7 @@ Changes since v1.0.1:
 - Update LICENSE ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update nuget.config ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update nuget.config ([@matt-edmondson](https://github.com/matt-edmondson))
+- Add github package support ([@matt-edmondson](https://github.com/matt-edmondson))
 - Make title case split words on case change so it can convert pascal to title ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update description and readme ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update LICENSE ([@matt-edmondson](https://github.com/matt-edmondson))
@@ -1028,6 +1065,7 @@ Changes since v1.0.1:
 - Update .editorconfig ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update README.md ([@matt-edmondson](https://github.com/matt-edmondson))
 - Make snake_case derive from MACRO_CASE rather than vice-versa per dotnet's suggestion as uppercase is more resilient to round-trip conversion ([@matt-edmondson](https://github.com/matt-edmondson))
+- Add github workflow to build and upload to nuget ([@matt-edmondson](https://github.com/matt-edmondson))
 - Initial commit ([@matt-edmondson](https://github.com/matt-edmondson))
 - Initial commit ([@matt-edmondson](https://github.com/matt-edmondson))
 
