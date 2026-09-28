@@ -429,4 +429,45 @@ public class CaseConverterTests
 	{
 		Assert.AreEqual(expected, input.ToSnakeCase());
 	}
+
+	// "ß" and "ﬁ" are lowercase letters with no single-character uppercase form, so they survive
+	// ToMacroCase. They used to read as lowercase when that output was converted again, which split
+	// "STRAßE" into "STR Aß E" and kept IsAllCaps from recognizing it.
+
+	[TestMethod]
+	[DataRow("straße")]
+	[DataRow("maßnahmeLimit")]
+	[DataRow("MAX_GRÖßE")]
+	[DataRow("ﬁle")]
+	public void ToMacroCaseShouldBeIdempotentForLowercaseLettersWithNoUppercaseForm(string input)
+	{
+		string once = input.ToMacroCase();
+		Assert.AreEqual(once, once.ToMacroCase());
+	}
+
+	[TestMethod]
+	public void AnAllCapsWordContainingSharpSShouldStayOneWord()
+	{
+		Assert.AreEqual("STRAßE", "straße".ToMacroCase());
+		Assert.AreEqual("straße", "STRAßE".ToSnakeCase());
+		Assert.AreEqual("Straße", "STRAßE".ToPascalCase());
+		Assert.AreEqual("Straße", "STRAßE".ToTitleCase());
+		Assert.AreEqual("maßnahme", "MAßNAHME".ToSnakeCase());
+		Assert.AreEqual("maxGröße", "MAX_GRÖßE".ToCamelCase());
+		Assert.AreEqual("maßnahme_limit", "maßnahmeLimit".ToMacroCase().ToSnakeCase());
+		Assert.AreEqual("ﬁLE", "ﬁle".ToMacroCase().ToMacroCase());
+	}
+
+	[TestMethod]
+	public void ALowercaseWordEndingInSharpSShouldStillSplitBeforeACapital()
+	{
+		Assert.AreEqual("groß_foo", "großFoo".ToSnakeCase());
+	}
+
+	[TestMethod]
+	public void IsAllCapsShouldIgnoreLowercaseLettersWithNoUppercaseForm()
+	{
+		Assert.IsTrue("STRAßE".IsAllCaps());
+		Assert.IsFalse("Straße".IsAllCaps());
+	}
 }
