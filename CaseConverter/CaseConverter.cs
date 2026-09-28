@@ -275,10 +275,47 @@ public static partial class CaseConverter
 #else
 			string word = input[wordStart..i];
 #endif
-			builder.Append(IsAllCaps(word) ? word.ToLowerInvariant() : word);
+			builder.Append(IsAllCaps(StemBeforeApostrophe(word)) ? word.ToLowerInvariant() : word);
 		}
 
 		return builder.ToString();
+	}
+
+	/// <summary>
+	/// Returns the part of <paramref name="word"/> before its first in-word apostrophe, or the whole
+	/// word if it has none.
+	/// </summary>
+	/// <param name="word">A word as <see cref="LowercaseAllCapsWords"/> finds it.</param>
+	/// <returns>The letters that decide whether <paramref name="word"/> is all caps.</returns>
+	/// <remarks>
+	/// A possessive or contraction suffix is conventionally lowercase even on an acronym, so
+	/// <c>"CEO's"</c> is all caps in the sense that matters. Judging it by its stem normalizes it the
+	/// same way as <c>"CEO"</c> rather than preserving it as an acronym.
+	/// </remarks>
+	private static string StemBeforeApostrophe(string word)
+	{
+		int previousStart = -1;
+
+		for (int i = 0; i < word.Length;)
+		{
+			int nextStart = i + CodePointLength(word, i);
+
+			if (IsApostropheWithinWord(word, previousStart, i, nextStart))
+			{
+#if NETSTANDARD2_0
+#pragma warning disable IDE0057 // Substring cannot be simplified in netstandard2.0
+				return word.Substring(0, i);
+#pragma warning restore IDE0057
+#else
+				return word[..i];
+#endif
+			}
+
+			previousStart = i;
+			i = nextStart;
+		}
+
+		return word;
 	}
 
 	/// <summary>
