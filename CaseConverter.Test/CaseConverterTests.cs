@@ -116,6 +116,19 @@ public class CaseConverterTests
 		Assert.AreEqual(expected, input.ToTitleCase());
 	}
 
+	// The lowercase "s" of a possessive made "CEO's" count as mixed case, so it was preserved as an
+	// acronym while "CEO" on its own was normalized.
+
+	[TestMethod]
+	[DataRow("the CEO office", "The Ceo Office")]
+	[DataRow("the CEO's office", "The Ceo's Office")]
+	[DataRow("NASA's mission", "Nasa's Mission")]
+	[DataRow("O'Neil", "O'neil")]
+	public void ToTitleCaseShouldNormalizeAPossessiveAllCapsWordLikeTheWordAlone(string input, string expected)
+	{
+		Assert.AreEqual(expected, input.ToTitleCase());
+	}
+
 	// ToTitleCase used to split before every non-letter, so punctuation became a word of its own and
 	// TextInfo.ToTitleCase capitalized the letter after it.
 
