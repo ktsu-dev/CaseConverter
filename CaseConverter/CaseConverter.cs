@@ -21,7 +21,8 @@ public static partial class CaseConverter
 	private static int CodePointLength(string input, int index) => char.IsSurrogatePair(input, index) ? 2 : 1;
 
 	/// <summary>
-	/// Replaces every code point that is not a Unicode letter or an ASCII digit with a space.
+	/// Replaces every code point that is not a Unicode letter or an ASCII digit with a space,
+	/// except that an apostrophe between two letters is dropped.
 	/// </summary>
 	/// <param name="input">The string to process.</param>
 	/// <returns>A new string with each non-alphanumeric code point replaced by a space.</returns>
@@ -31,29 +32,54 @@ public static partial class CaseConverter
 	/// <see cref="UnicodeCategory.Surrogate"/> rather than as a letter — so each half of a
 	/// surrogate pair matched and letters outside the Basic Multilingual Plane were silently
 	/// deleted instead of preserved.
+	/// <para>
+	/// An apostrophe (<c>'</c> or U+2019) between two letters is part of the word, as in
+	/// <c>"don't"</c> or <c>"o'neil"</c>, so it is dropped rather than turned into a separator. This
+	/// keeps <c>"don't stop"</c> as two words, matching <see cref="ToTitleCase(string)"/>. An
+	/// apostrophe anywhere else, such as a leading or trailing quote, still separates words.
+	/// </para>
 	/// </remarks>
 	private static string ReplaceNonAlphaNumericWithSpace(string input)
 	{
 		StringBuilder builder = new(input.Length);
+		int previousStart = -1;
 
 		for (int i = 0; i < input.Length;)
 		{
 			int length = CodePointLength(input, i);
+			int nextStart = i + length;
 
 			if (char.IsLetter(input, i) || input[i] is >= '0' and <= '9')
 			{
 				builder.Append(input, i, length);
 			}
-			else
+			else if (!IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
 				builder.Append(' ');
 			}
 
-			i += length;
+			previousStart = i;
+			i = nextStart;
 		}
 
 		return builder.ToString();
 	}
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="start"/> is an apostrophe with a letter on
+	/// each side of it.
+	/// </summary>
+	/// <param name="input">The string being processed.</param>
+	/// <param name="previousStart">The index of the preceding code point, or -1 if there is none.</param>
+	/// <param name="start">The index of the code point to test.</param>
+	/// <param name="nextStart">The index of the following code point, which may be past the end.</param>
+	/// <returns><c>true</c> if the code point is an in-word apostrophe; otherwise, <c>false</c>.</returns>
+	private static bool IsApostropheWithinWord(string input, int previousStart, int start, int nextStart) =>
+		input[start] is '\'' or '\u2019'
+		&& previousStart >= 0
+		&& nextStart < input.Length
+		&& char.IsLetter(input, previousStart)
+		&& char.IsLetter(input, nextStart);
 
 	/// <summary>
 	/// Inserts a space at each case change, such as transitions from lower to upper or from a

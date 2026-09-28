@@ -392,4 +392,28 @@ public class CaseConverterTests
 		string result = input.ToSnakeCase();
 		Assert.AreEqual("emoji_here", result);
 	}
+
+	[TestMethod]
+	[DataRow("don't stop", "DontStop", "dontStop", "dont_stop", "dont-stop", "DONT_STOP")]
+	[DataRow("don\u2019t stop", "DontStop", "dontStop", "dont_stop", "dont-stop", "DONT_STOP")]
+	[DataRow("o'neil", "Oneil", "oneil", "oneil", "oneil", "ONEIL")]
+	[DataRow("o\u2019neil", "Oneil", "oneil", "oneil", "oneil", "ONEIL")]
+	public void ApostropheWithinWordShouldNotSplitIt(string input, string pascal, string camel, string snake, string kebab, string macro)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(kebab, input.ToKebabCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+	}
+
+	[TestMethod]
+	[DataRow("'quoted' word", "quoted_word")]
+	[DataRow("\u2019quoted\u2019 word", "quoted_word")]
+	[DataRow("rock 'n' roll", "rock_n_roll")]
+	[DataRow("80's music", "80_s_music")]
+	public void ApostropheNotBetweenLettersShouldStillSeparateWords(string input, string expected)
+	{
+		Assert.AreEqual(expected, input.ToSnakeCase());
+	}
 }
