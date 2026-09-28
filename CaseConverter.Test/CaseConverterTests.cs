@@ -411,6 +411,12 @@ public class CaseConverterTests
 	[DataRow("don\u2019t stop", "DontStop", "dontStop", "dont_stop", "dont-stop", "DONT_STOP")]
 	[DataRow("o'neil", "Oneil", "oneil", "oneil", "oneil", "ONEIL")]
 	[DataRow("o\u2019neil", "Oneil", "oneil", "oneil", "oneil", "ONEIL")]
+	[DataRow("DON'T stop", "DontStop", "dontStop", "dont_stop", "dont-stop", "DONT_STOP")]
+	[DataRow("API's", "Apis", "apis", "apis", "apis", "APIS")]
+	[DataRow("CEO's office", "CeosOffice", "ceosOffice", "ceos_office", "ceos-office", "CEOS_OFFICE")]
+	[DataRow("the CEO's office", "TheCeosOffice", "theCeosOffice", "the_ceos_office", "the-ceos-office", "THE_CEOS_OFFICE")]
+	[DataRow("NASA's mission", "NasasMission", "nasasMission", "nasas_mission", "nasas-mission", "NASAS_MISSION")]
+	[DataRow("CEO\u2019s office", "CeosOffice", "ceosOffice", "ceos_office", "ceos-office", "CEOS_OFFICE")]
 	public void ApostropheWithinWordShouldNotSplitIt(string input, string pascal, string camel, string snake, string kebab, string macro)
 	{
 		Assert.AreEqual(pascal, input.ToPascalCase());

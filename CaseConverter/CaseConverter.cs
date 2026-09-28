@@ -38,24 +38,44 @@ public static partial class CaseConverter
 	/// keeps <c>"don't stop"</c> as two words, matching <see cref="ToTitleCase(string)"/>. An
 	/// apostrophe anywhere else, such as a leading or trailing quote, still separates words.
 	/// </para>
+	/// <para>
+	/// When the apostrophe follows a capital and every letter after it is lowercase, as in
+	/// <c>"CEO's"</c>, those letters are uppercased. Dropping the apostrophe alone would leave
+	/// <c>"CEOs"</c>, which <see cref="SplitOnCaseChange(string)"/> reads as an acronym followed by a
+	/// capitalised word and splits into <c>"CE Os"</c>. <c>"CEOS"</c> is one all-caps word, which every
+	/// converter then normalizes the same way as <c>"CEO"</c>.
+	/// </para>
 	/// </remarks>
 	private static string ReplaceNonAlphaNumericWithSpace(string input)
 	{
 		StringBuilder builder = new(input.Length);
 		int previousStart = -1;
+		bool uppercaseSuffix = false;
 
 		for (int i = 0; i < input.Length;)
 		{
 			int length = CodePointLength(input, i);
 			int nextStart = i + length;
 
-			if (char.IsLetter(input, i) || input[i] is >= '0' and <= '9')
+			if (char.IsLetter(input, i))
 			{
-				builder.Append(input, i, length);
+#if NETSTANDARD2_0
+#pragma warning disable IDE0057 // Substring cannot be simplified in netstandard2.0
+				string letter = input.Substring(i, length);
+#pragma warning restore IDE0057
+#else
+				string letter = input[i..nextStart];
+#endif
+				builder.Append(uppercaseSuffix ? letter.ToUpperInvariant() : letter);
 			}
-			else if (!IsApostropheWithinWord(input, previousStart, i, nextStart))
+			else if (IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
-				builder.Append(' ');
+				uppercaseSuffix = char.IsUpper(input, previousStart) && AreLettersFromIndexLowercase(input, nextStart);
+			}
+			else
+			{
+				builder.Append(input[i] is >= '0' and <= '9' ? input[i] : ' ');
+				uppercaseSuffix = false;
 			}
 
 			previousStart = i;
@@ -63,6 +83,25 @@ public static partial class CaseConverter
 		}
 
 		return builder.ToString();
+	}
+
+	/// <summary>
+	/// Determines whether every letter in the run of letters starting at <paramref name="start"/> is lowercase.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="start">The index of the first letter of the run.</param>
+	/// <returns><c>true</c> if no letter in the run is uppercase or titlecase; otherwise, <c>false</c>.</returns>
+	private static bool AreLettersFromIndexLowercase(string input, int start)
+	{
+		for (int i = start; i < input.Length && char.IsLetter(input, i); i += CodePointLength(input, i))
+		{
+			if (!char.IsLower(input, i))
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/// <summary>
