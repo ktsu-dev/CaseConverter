@@ -1,6 +1,7 @@
-## v1.8.3 (patch)
+## v1.8.4 (patch)
 
-Changes since v1.8.2:
+Changes since v1.8.3:
 
-- Move CI onto the shared ci-shared.yml pipeline ([@Claude](https://github.com/Claude))
+- Keep a plural acronym in one piece: "APIs" no longer splits as "AP Is" [patch] ([@Claude](https://github.com/Claude))
+- Case-map İ and ı, which the invariant mapping leaves alone [patch] ([@Claude](https://github.com/Claude))
 
