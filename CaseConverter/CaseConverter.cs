@@ -74,12 +74,8 @@ public static partial class CaseConverter
 #else
 				string letter = input[i..nextStart];
 #endif
-				if (lowercaseNextLetter)
-				{
-					letter = letter.ToLowerInvariant();
-					lowercaseNextLetter = false;
-				}
-
+				letter = lowercaseNextLetter ? letter.ToLowerInvariant() : letter;
+				lowercaseNextLetter = false;
 				builder.Append(uppercaseSuffix ? letter.ToUpperInvariant() : letter);
 			}
 			else if (IsApostropheWithinWord(input, previousStart, i, nextStart))
