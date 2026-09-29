@@ -190,8 +190,9 @@ public static partial class CaseConverter
 		// takes the case of the nearest letter that has one: "STRAßE" is a single all-caps word.
 		int casedNextStart = SkipLowercaseWithNoUppercase(input, nextStart);
 
-		// The tail of an acronym run that begins a new word: "XMLDoc" breaks before the "D".
-		if (previousIsUpper && currentIsUpper && casedNextStart < input.Length && char.IsLower(input, casedNextStart))
+		// The tail of an acronym run that begins a new word: "XMLDoc" breaks before the "D". A lone
+		// plural "s" is not a word, so "APIs" and "getIDs" keep the acronym whole.
+		if (previousIsUpper && currentIsUpper && casedNextStart < input.Length && char.IsLower(input, casedNextStart) && !IsPluralSuffix(input, casedNextStart))
 		{
 			return true;
 		}
@@ -211,6 +212,32 @@ public static partial class CaseConverter
 		}
 
 		return breakBeforeAnyNonLetter || char.IsDigit(input, start);
+	}
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> is a lone <c>"s"</c> that ends its
+	/// word, as in the plural acronym <c>"APIs"</c>.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the lowercase letter after an acronym run.</param>
+	/// <returns>
+	/// <c>true</c> if the code point is <c>"s"</c> followed by the end of the string, a non-letter or a
+	/// capital; otherwise, <c>false</c>.
+	/// </returns>
+	/// <remarks>
+	/// A capital after the <c>"s"</c> starts the next word, so <c>"PDFsAndDOCs"</c> splits into
+	/// <c>"PDFs And DOCs"</c>. A longer lowercase run is a real word, so <c>"HTTPServer"</c> still splits
+	/// before the <c>"S"</c>.
+	/// </remarks>
+	private static bool IsPluralSuffix(string input, int index)
+	{
+		if (input[index] != 's')
+		{
+			return false;
+		}
+
+		int nextStart = index + 1;
+		return nextStart >= input.Length || !char.IsLetter(input, nextStart) || char.IsUpper(input, nextStart);
 	}
 
 	/// <summary>

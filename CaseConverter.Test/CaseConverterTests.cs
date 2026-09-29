@@ -178,6 +178,38 @@ public class CaseConverterTests
 		Assert.AreEqual("Abc 123", "abc123".ToTitleCase());
 	}
 
+	// A plural acronym ends in a lowercase "s", which the acronym-tail rule ("XMLDoc" -> "XML Doc") used
+	// to read as the start of a capitalised word, splitting "APIs" into "AP Is".
+
+	[TestMethod]
+	[DataRow("APIs", "Apis", "apis", "apis", "apis", "APIS", "Apis")]
+	[DataRow("URLs", "Urls", "urls", "urls", "urls", "URLS", "Urls")]
+	[DataRow("getIDs", "GetIds", "getIds", "get_ids", "get-ids", "GET_IDS", "Get Ids")]
+	[DataRow("the URLs list", "TheUrlsList", "theUrlsList", "the_urls_list", "the-urls-list", "THE_URLS_LIST", "The Urls List")]
+	[DataRow("PDFsAndDOCs", "PdfsAndDocs", "pdfsAndDocs", "pdfs_and_docs", "pdfs-and-docs", "PDFS_AND_DOCS", "Pdfs And Docs")]
+	[DataRow("GUIDs_2", "Guids2", "guids2", "guids_2", "guids-2", "GUIDS_2", "Guids 2")]
+	public void APluralAcronymShouldStayOneWord(string input, string pascal, string camel, string snake, string kebab, string macro, string title)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(kebab, input.ToKebabCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+		Assert.AreEqual(title, input.ToTitleCase());
+	}
+
+	[TestMethod]
+	[DataRow("HTTPServer", "http_server")]
+	[DataRow("XMLDoc", "xml_doc")]
+	[DataRow("HTMLParser", "html_parser")]
+	[DataRow("ABCdef", "ab_cdef")]
+	[DataRow("IOStream", "io_stream")]
+	[DataRow("URLsList", "urls_list")]
+	public void AnAcronymFollowedByAWordShouldStillSplit(string input, string snake)
+	{
+		Assert.AreEqual(snake, input.ToSnakeCase());
+	}
+
 	[TestMethod]
 	public void ToPascalCaseShouldNormalizeAnAllCapsWordIndependentlyOfItsNeighbours()
 	{
