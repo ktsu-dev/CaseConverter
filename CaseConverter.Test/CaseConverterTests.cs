@@ -468,6 +468,14 @@ public class CaseConverterTests
 	[DataRow("don\u2019t stop", "DontStop", "dontStop", "dont_stop", "dont-stop", "DONT_STOP")]
 	[DataRow("o'neil", "Oneil", "oneil", "oneil", "oneil", "ONEIL")]
 	[DataRow("o\u2019neil", "Oneil", "oneil", "oneil", "oneil", "ONEIL")]
+	[DataRow("O'Neil", "Oneil", "oneil", "oneil", "oneil", "ONEIL")]
+	[DataRow("O\u2019Neil", "Oneil", "oneil", "oneil", "oneil", "ONEIL")]
+	[DataRow("O'NEIL", "Oneil", "oneil", "oneil", "oneil", "ONEIL")]
+	[DataRow("D'Angelo", "Dangelo", "dangelo", "dangelo", "dangelo", "DANGELO")]
+	[DataRow("d'angelo", "Dangelo", "dangelo", "dangelo", "dangelo", "DANGELO")]
+	[DataRow("Don'T stop", "DontStop", "dontStop", "dont_stop", "dont-stop", "DONT_STOP")]
+	[DataRow("O'Neil's car", "OneilsCar", "oneilsCar", "oneils_car", "oneils-car", "ONEILS_CAR")]
+	[DataRow("McDonald's menu", "McDonaldsMenu", "mcDonaldsMenu", "mc_donalds_menu", "mc-donalds-menu", "MC_DONALDS_MENU")]
 	[DataRow("DON'T stop", "DontStop", "dontStop", "dont_stop", "dont-stop", "DONT_STOP")]
 	[DataRow("API's", "Apis", "apis", "apis", "apis", "APIS")]
 	[DataRow("CEO's office", "CeosOffice", "ceosOffice", "ceos_office", "ceos-office", "CEOS_OFFICE")]
@@ -491,6 +499,16 @@ public class CaseConverterTests
 	public void ApostropheNotBetweenLettersShouldStillSeparateWords(string input, string expected)
 	{
 		Assert.AreEqual(expected, input.ToSnakeCase());
+	}
+
+	[TestMethod]
+	[DataRow("O'Neil", "o'neil")]
+	[DataRow("D'Angelo", "d'angelo")]
+	[DataRow("Don'T", "don't")]
+	public void ACapitalisedApostropheNameShouldConvertLikeItsLowercaseSpelling(string input, string lowercase)
+	{
+		Assert.AreEqual(lowercase.ToSnakeCase(), input.ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToTitleCase().ToSnakeCase());
 	}
 
 	// "ß" and "ﬁ" are lowercase letters with no single-character uppercase form, so they survive
