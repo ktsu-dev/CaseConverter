@@ -21,6 +21,30 @@ public static partial class CaseConverter
 	private static int CodePointLength(string input, int index) => char.IsSurrogatePair(input, index) ? 2 : 1;
 
 	/// <summary>
+	/// Converts <paramref name="input"/> to uppercase with the invariant mapping, and also maps <c>"ı"</c> (U+0131) to <c>"I"</c>.
+	/// </summary>
+	/// <param name="input">The string to convert.</param>
+	/// <returns>The uppercase string.</returns>
+	/// <remarks>
+	/// The invariant mapping deliberately leaves the dotless <c>"ı"</c> alone, which would leave a lowercase
+	/// letter in MACRO_CASE and PascalCase output. <c>"I"</c> is its Unicode simple uppercase mapping. A
+	/// culture's <see cref="TextInfo"/> is not used, because its result depends on the ICU data installed.
+	/// </remarks>
+	private static string ToUpperInvariantFull(string input) => input.ToUpperInvariant().Replace('\u0131', 'I');
+
+	/// <summary>
+	/// Converts <paramref name="input"/> to lowercase with the invariant mapping, and also maps <c>"İ"</c> (U+0130) to <c>"i"</c>.
+	/// </summary>
+	/// <param name="input">The string to convert.</param>
+	/// <returns>The lowercase string.</returns>
+	/// <remarks>
+	/// The invariant mapping deliberately leaves the dotted <c>"İ"</c> alone, which would leave an uppercase
+	/// letter in snake_case, kebab-case and camelCase output. <c>"i"</c> is its Unicode simple lowercase mapping.
+	/// </remarks>
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "Lowercasing is the point of this method.")]
+	private static string ToLowerInvariantFull(string input) => input.ToLowerInvariant().Replace('\u0130', 'i');
+
+	/// <summary>
 	/// Replaces every code point that is not a Unicode letter or an ASCII digit with a space,
 	/// except that an apostrophe between two letters is dropped.
 	/// </summary>
@@ -75,7 +99,7 @@ public static partial class CaseConverter
 #endif
 				letter = LowercaseIf(letter, lowercaseNextLetter);
 				lowercaseNextLetter = false;
-				builder.Append(uppercaseSuffix ? letter.ToUpperInvariant() : letter);
+				builder.Append(uppercaseSuffix ? ToUpperInvariantFull(letter) : letter);
 			}
 			else if (IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
@@ -101,8 +125,7 @@ public static partial class CaseConverter
 	/// <param name="letter">The letter, as a string of one or two UTF-16 code units.</param>
 	/// <param name="lowercase">Whether to lowercase it.</param>
 	/// <returns>The letter, lowercased if asked.</returns>
-	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "The letter after an in-word apostrophe is lowercased so it does not start a new word.")]
-	private static string LowercaseIf(string letter, bool lowercase) => lowercase ? letter.ToLowerInvariant() : letter;
+	private static string LowercaseIf(string letter, bool lowercase) => lowercase ? ToLowerInvariantFull(letter) : letter;
 
 	/// <summary>
 	/// Determines whether the letter after an in-word apostrophe is a capital that the letters around it
@@ -284,7 +307,7 @@ public static partial class CaseConverter
 #else
 		string codePoint = input[index..(index + CodePointLength(input, index))];
 #endif
-		return string.Equals(codePoint.ToUpperInvariant(), codePoint, StringComparison.Ordinal);
+		return string.Equals(ToUpperInvariantFull(codePoint), codePoint, StringComparison.Ordinal);
 	}
 
 	/// <summary>
@@ -348,11 +371,10 @@ public static partial class CaseConverter
 	/// Plane is case-mapped as a whole rather than through its high surrogate alone, which would
 	/// leave it unchanged.
 	/// </remarks>
-	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "Lowercasing the first character is the point of this method.")]
 	public static string ToLowercaseFirstChar(this string input)
 	{
 		Ensure.NotNull(input);
-		return MapFirstCodePoint(CollapseSpaces(input).Trim(), static first => first.ToLowerInvariant());
+		return MapFirstCodePoint(CollapseSpaces(input).Trim(), ToLowerInvariantFull);
 	}
 
 	/// <summary>
@@ -369,7 +391,7 @@ public static partial class CaseConverter
 	public static string ToUppercaseFirstChar(this string input)
 	{
 		Ensure.NotNull(input);
-		return MapFirstCodePoint(CollapseSpaces(input).Trim(), static first => first.ToUpperInvariant());
+		return MapFirstCodePoint(CollapseSpaces(input).Trim(), ToUpperInvariantFull);
 	}
 
 	/// <summary>
@@ -441,6 +463,8 @@ public static partial class CaseConverter
 #else
 			string word = input[wordStart..i];
 #endif
+			// An "İ" is left for TitleCaseKeepingTypographicApostrophes to map, so one that starts the
+			// word keeps its dot: "İZMİR" becomes "İzmir", the same as "İzmir" does.
 			builder.Append(IsAllCaps(StemBeforeApostrophe(word)) ? word.ToLowerInvariant() : word);
 		}
 
@@ -526,7 +550,8 @@ public static partial class CaseConverter
 	}
 
 	/// <summary>
-	/// Applies <see cref="TextInfo.ToTitleCase(string)"/>, treating an in-word U+2019 the same as an ASCII apostrophe.
+	/// Applies <see cref="TextInfo.ToTitleCase(string)"/>, treating an in-word U+2019 the same as an ASCII
+	/// apostrophe, and case-mapping <c>"İ"</c> and <c>"ı"</c>.
 	/// </summary>
 	/// <param name="input">The string to convert.</param>
 	/// <returns>A new string in Title Case.</returns>
@@ -535,11 +560,18 @@ public static partial class CaseConverter
 	/// treats U+2019 as a word separator, so <c>"don’t"</c> would become <c>"Don’T"</c>. Each in-word
 	/// U+2019 is swapped for <c>'</c> before the call and restored at the same index afterwards, which is
 	/// safe because <see cref="TextInfo.ToTitleCase(string)"/> does not change the string's length.
+	/// <para>
+	/// The invariant <see cref="TextInfo"/> leaves <c>"İ"</c> (U+0130) and <c>"ı"</c> (U+0131) unmapped, so
+	/// a word could start with <c>"ı"</c> or keep an <c>"İ"</c> mid-word. Each is swapped for <c>"I"</c> or
+	/// <c>"i"</c> before the call. Afterwards, an <c>"I"</c> at that index means the letter starts a word, so
+	/// <c>"İ"</c> is restored (it is already its own title case) and <c>"ı"</c> becomes <c>"I"</c>; an
+	/// <c>"i"</c> means it does not, so <c>"İ"</c> becomes <c>"i"</c> and <c>"ı"</c> is restored.
+	/// </para>
 	/// </remarks>
 	private static string TitleCaseKeepingTypographicApostrophes(string input)
 	{
 		char[] characters = input.ToCharArray();
-		List<int> typographicApostrophes = [];
+		List<int> substitutions = [];
 		int previousStart = -1;
 
 		for (int i = 0; i < input.Length;)
@@ -549,23 +581,33 @@ public static partial class CaseConverter
 			if (input[i] == '’' && IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
 				characters[i] = '\'';
-				typographicApostrophes.Add(i);
+				substitutions.Add(i);
+			}
+			else if (input[i] is '\u0130' or '\u0131')
+			{
+				characters[i] = input[i] == '\u0130' ? 'I' : 'i';
+				substitutions.Add(i);
 			}
 
 			previousStart = i;
 			i = nextStart;
 		}
 
-		if (typographicApostrophes.Count == 0)
+		if (substitutions.Count == 0)
 		{
 			return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(input);
 		}
 
 		char[] output = CultureInfo.InvariantCulture.TextInfo.ToTitleCase(new string(characters)).ToCharArray();
 
-		foreach (int index in typographicApostrophes)
+		foreach (int index in substitutions)
 		{
-			output[index] = '’';
+			output[index] = (input[index], output[index]) switch
+			{
+				('\u0130', 'i') => 'i',
+				('\u0131', 'I') => 'I',
+				_ => input[index],
+			};
 		}
 
 		return new string(output);
@@ -672,11 +714,10 @@ public static partial class CaseConverter
 	/// </summary>
 	/// <param name="input">The string to convert.</param>
 	/// <returns>A new string in snake_case.</returns>
-	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "We actually want lowercase here as snake case is lowercase")]
 	public static string ToSnakeCase(this string input)
 	{
 		Ensure.NotNull(input);
-		return input.ToMacroCase().ToLowerInvariant();
+		return ToLowerInvariantFull(input.ToMacroCase());
 	}
 
 	/// <summary>
@@ -709,7 +750,7 @@ public static partial class CaseConverter
 
 		string output = input.Trim();
 		output = ReplaceNonAlphaNumericWithSpace(output);
-		output = SplitOnCaseChange(output).ToUpperInvariant();
+		output = ToUpperInvariantFull(SplitOnCaseChange(output));
 		output = CollapseSpaces(output).Trim();
 #if NETSTANDARD2_0
 		output = output.Replace(" ", "_");
