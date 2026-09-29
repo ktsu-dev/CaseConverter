@@ -501,4 +501,55 @@ public class CaseConverterTests
 		Assert.IsTrue("STRAßE".IsAllCaps());
 		Assert.IsFalse("Straße".IsAllCaps());
 	}
+
+	// .NET's invariant casing leaves "İ" (U+0130) and "ı" (U+0131) unmapped. Unicode's simple mappings
+	// are "İ" -> "i" and "ı" -> "I", and without them the output breaks its own case style's rule.
+
+	[TestMethod]
+	[DataRow("İzmir city", "İzmirCity", "izmirCity", "izmir_city", "izmir-city", "İZMIR_CITY")]
+	[DataRow("İZMİR", "İzmir", "izmir", "izmir", "izmir", "İZMİR")]
+	public void DottedCapitalIShouldBeCaseMapped(string input, string pascal, string camel, string snake, string kebab, string macro)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(kebab, input.ToKebabCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+	}
+
+	[TestMethod]
+	[DataRow("kırmızı", "Kırmızı", "KIRMIZI")]
+	[DataRow("ılık su", "IlıkSu", "ILIK_SU")]
+	public void DotlessSmallIShouldBeCaseMapped(string input, string pascal, string macro)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+	}
+
+	[TestMethod]
+	public void DottedCapitalIAndDotlessSmallIShouldBeCaseMappedInTheFirstCharHelpersAndTitleCase()
+	{
+		Assert.AreEqual("istanbul", "İstanbul".ToLowercaseFirstChar());
+		Assert.AreEqual("Ilık su", "ılık su".ToUppercaseFirstChar());
+		Assert.AreEqual("Ilık Su", "ılık su".ToTitleCase());
+		Assert.AreEqual("İzmir", "İZMİR".ToTitleCase());
+	}
+
+	[TestMethod]
+	[DataRow("kırmızı")]
+	[DataRow("İzmir city")]
+	[DataRow("ılık su")]
+	public void ToMacroCaseShouldBeIdempotentForDottedAndDotlessI(string input)
+	{
+		string once = input.ToMacroCase();
+		Assert.AreEqual(once, once.ToMacroCase());
+	}
+
+	[TestMethod]
+	public void IsAllCapsShouldTreatDotlessSmallIAsLowercase()
+	{
+		Assert.IsFalse("ı".IsAllCaps());
+		Assert.IsFalse("KıRMıZı".IsAllCaps());
+		Assert.IsTrue("İZMİR".IsAllCaps());
+	}
 }
