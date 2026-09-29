@@ -52,7 +52,6 @@ public static partial class CaseConverter
 	/// <c>"O'Neil"</c> would convert differently from <c>"o'neil"</c> and <c>"O'NEIL"</c>.
 	/// </para>
 	/// </remarks>
-	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "The letter after an in-word apostrophe is lowercased so it does not start a new word.")]
 	private static string ReplaceNonAlphaNumericWithSpace(string input)
 	{
 		StringBuilder builder = new(input.Length);
@@ -74,7 +73,7 @@ public static partial class CaseConverter
 #else
 				string letter = input[i..nextStart];
 #endif
-				letter = lowercaseNextLetter ? letter.ToLowerInvariant() : letter;
+				letter = LowercaseIf(letter, lowercaseNextLetter);
 				lowercaseNextLetter = false;
 				builder.Append(uppercaseSuffix ? letter.ToUpperInvariant() : letter);
 			}
@@ -95,6 +94,15 @@ public static partial class CaseConverter
 
 		return builder.ToString();
 	}
+
+	/// <summary>
+	/// Returns <paramref name="letter"/> lowercased when <paramref name="lowercase"/> is set, otherwise unchanged.
+	/// </summary>
+	/// <param name="letter">The letter, as a string of one or two UTF-16 code units.</param>
+	/// <param name="lowercase">Whether to lowercase it.</param>
+	/// <returns>The letter, lowercased if asked.</returns>
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "The letter after an in-word apostrophe is lowercased so it does not start a new word.")]
+	private static string LowercaseIf(string letter, bool lowercase) => lowercase ? letter.ToLowerInvariant() : letter;
 
 	/// <summary>
 	/// Determines whether the letter after an in-word apostrophe is a capital that the letters around it
