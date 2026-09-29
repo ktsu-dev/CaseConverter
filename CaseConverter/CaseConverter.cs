@@ -45,12 +45,20 @@ public static partial class CaseConverter
 	/// capitalised word and splits into <c>"CE Os"</c>. <c>"CEOS"</c> is one all-caps word, which every
 	/// converter then normalizes the same way as <c>"CEO"</c>.
 	/// </para>
+	/// <para>
+	/// Otherwise, a capital straight after the apostrophe is lowercased when the letters around it are
+	/// lowercase, as in <c>"O'Neil"</c> or <c>"Don'T"</c>. Dropping the apostrophe alone would leave
+	/// <c>"ONeil"</c>, which <see cref="SplitOnCaseChange(string)"/> splits into <c>"O Neil"</c>, so
+	/// <c>"O'Neil"</c> would convert differently from <c>"o'neil"</c> and <c>"O'NEIL"</c>.
+	/// </para>
 	/// </remarks>
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "The letter after an in-word apostrophe is lowercased so it does not start a new word.")]
 	private static string ReplaceNonAlphaNumericWithSpace(string input)
 	{
 		StringBuilder builder = new(input.Length);
 		int previousStart = -1;
 		bool uppercaseSuffix = false;
+		bool lowercaseNextLetter = false;
 
 		for (int i = 0; i < input.Length;)
 		{
@@ -66,11 +74,18 @@ public static partial class CaseConverter
 #else
 				string letter = input[i..nextStart];
 #endif
+				if (lowercaseNextLetter)
+				{
+					letter = letter.ToLowerInvariant();
+					lowercaseNextLetter = false;
+				}
+
 				builder.Append(uppercaseSuffix ? letter.ToUpperInvariant() : letter);
 			}
 			else if (IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
 				uppercaseSuffix = char.IsUpper(input, previousStart) && AreLettersFromIndexLowercase(input, nextStart);
+				lowercaseNextLetter = !uppercaseSuffix && IsCapitalAfterApostropheInLowercaseContext(input, previousStart, nextStart);
 			}
 			else
 			{
@@ -83,6 +98,32 @@ public static partial class CaseConverter
 		}
 
 		return builder.ToString();
+	}
+
+	/// <summary>
+	/// Determines whether the letter after an in-word apostrophe is a capital that the letters around it
+	/// show should be lowercase.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="previousStart">The index of the letter before the apostrophe.</param>
+	/// <param name="nextStart">The index of the letter after the apostrophe.</param>
+	/// <returns><c>true</c> if the letter after the apostrophe should be lowercased; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// The letter follows the case of the letter after it when there is one, so <c>"O'Neil"</c> lowers the
+	/// <c>"N"</c> while <c>"O'NEIL"</c> keeps it. At the end of the word it follows the letter before the
+	/// apostrophe instead, so <c>"Don'T"</c> lowers the <c>"T"</c> while <c>"DON'T"</c> keeps it.
+	/// </remarks>
+	private static bool IsCapitalAfterApostropheInLowercaseContext(string input, int previousStart, int nextStart)
+	{
+		if (!char.IsUpper(input, nextStart))
+		{
+			return false;
+		}
+
+		int afterNextStart = nextStart + CodePointLength(input, nextStart);
+		return afterNextStart < input.Length && char.IsLetter(input, afterNextStart)
+			? char.IsLower(input, afterNextStart)
+			: !char.IsUpper(input, previousStart);
 	}
 
 	/// <summary>
