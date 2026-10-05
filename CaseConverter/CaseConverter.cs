@@ -572,8 +572,45 @@ public static partial class CaseConverter
 		// them first. This is done per word rather than only when the whole string is all caps, because
 		// otherwise the same word converts two different ways depending on its neighbours.
 		output = LowercaseAllCapsWords(output);
+		output = TitleCaseKeepingTypographicApostrophes(output);
 
-		return TitleCaseKeepingTypographicApostrophes(output);
+		return LowercaseLettersAfterDigits(output);
+	}
+
+	/// <summary>
+	/// Lowercases each letter that directly follows a digit.
+	/// </summary>
+	/// <param name="input">The output of <see cref="TitleCaseKeepingTypographicApostrophes"/>.</param>
+	/// <returns>A new string with each letter after a digit lowercased.</returns>
+	/// <remarks>
+	/// <see cref="TextInfo.ToTitleCase(string)"/> treats a letter after a digit as the start of a word,
+	/// so <c>"1st place"</c> would become <c>"1St Place"</c>. <see cref="SplitOnCaseChange(string)"/> does
+	/// not break between a digit and a letter, so snake_case, kebab-case and MACRO_CASE keep <c>"1st"</c>
+	/// as one word. Lowering the letter here makes Title Case, PascalCase and camelCase agree with them,
+	/// so <c>x.ToPascalCase().ToSnakeCase()</c> is the same as <c>x.ToSnakeCase()</c>.
+	/// </remarks>
+	private static string LowercaseLettersAfterDigits(string input)
+	{
+		StringBuilder builder = new(input.Length);
+		int previousStart = -1;
+
+		for (int i = 0; i < input.Length;)
+		{
+			int length = CodePointLength(input, i);
+#if NETSTANDARD2_0
+#pragma warning disable IDE0057 // Substring cannot be simplified in netstandard2.0
+			string codePoint = input.Substring(i, length);
+#pragma warning restore IDE0057
+#else
+			string codePoint = input[i..(i + length)];
+#endif
+			bool followsDigit = previousStart >= 0 && char.IsDigit(input, previousStart);
+			builder.Append(followsDigit && char.IsLetter(input, i) ? ToLowerInvariantFull(codePoint) : codePoint);
+			previousStart = i;
+			i += length;
+		}
+
+		return builder.ToString();
 	}
 
 	/// <summary>
