@@ -602,4 +602,59 @@ public class CaseConverterTests
 		Assert.IsFalse("KıRMıZı".IsAllCaps());
 		Assert.IsTrue("İZMİR".IsAllCaps());
 	}
+
+	// A combining mark belongs to the letter before it, and a decimal digit from any script is a digit.
+	// Both used to be replaced with a space, which broke Devanagari words apart at every vowel sign and
+	// dropped the accents of decomposed (NFD) Latin text and the digits of Arabic-Indic numbers.
+
+	[TestMethod]
+	[DataRow("हिन्दी भाषा", "हिन्दीभाषा", "हिन्दीभाषा", "हिन्दी_भाषा", "हिन्दी-भाषा", "हिन्दी_भाषा")]
+	[DataRow("éclair", "Éclair", "éclair", "éclair", "éclair", "ÉCLAIR")]
+	[DataRow("café au lait", "CaféAuLait", "caféAuLait", "café_au_lait", "café-au-lait", "CAFÉ_AU_LAIT")]
+	[DataRow("x١٢٣ y", "X١٢٣Y", "x١٢٣Y", "x_١٢٣_y", "x-١٢٣-y", "X_١٢٣_Y")]
+	[DataRow("x१२३ y", "X१२३Y", "x१२३Y", "x_१२३_y", "x-१२३-y", "X_१२३_Y")]
+	public void CombiningMarksAndNonAsciiDigitsShouldBeKept(string input, string pascal, string camel, string snake, string kebab, string macro)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(kebab, input.ToKebabCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+		Assert.AreEqual(snake, input.ToMacroCase().ToSnakeCase());
+	}
+
+	// A caseless script such as Devanagari has no capital to mark a word in PascalCase, so only cased
+	// text can round-trip through it.
+
+	[TestMethod]
+	[DataRow("e\u0301clair")]
+	[DataRow("cafe\u0301 au lait")]
+	[DataRow("x\u0661\u0662\u0663 y")]
+	public void CasedTextWithCombiningMarksOrNonAsciiDigitsShouldRoundTripThroughPascalCase(string input)
+	{
+		Assert.AreEqual(input.ToSnakeCase(), input.ToPascalCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToCamelCase().ToSnakeCase());
+	}
+
+	[TestMethod]
+	public void ANonAsciiDigitAfterALetterShouldStartANewWordInSnakeCase()
+	{
+		Assert.AreEqual("x_١٢٣y", "x١٢٣y".ToSnakeCase());
+	}
+
+	[TestMethod]
+	[DataRow("ÉCLAIR", "éclair")]
+	[DataRow("CAFÉ AU LAIT", "café au lait")]
+	public void AnAllCapsWordWithACombiningMarkShouldConvertLikeItsLowercaseSpelling(string input, string lowercase)
+	{
+		Assert.AreEqual(lowercase.ToPascalCase(), input.ToPascalCase());
+		Assert.AreEqual(lowercase.ToTitleCase(), input.ToTitleCase());
+	}
+
+	[TestMethod]
+	public void ACapitalAfterACombiningMarkShouldStartANewWord()
+	{
+		Assert.AreEqual("café_bar", "caféBar".ToSnakeCase());
+		Assert.AreEqual("été_xml_doc", "étéXMLDoc".ToSnakeCase());
+	}
 }
