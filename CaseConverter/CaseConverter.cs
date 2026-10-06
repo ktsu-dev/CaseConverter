@@ -21,6 +21,36 @@ public static partial class CaseConverter
 	private static int CodePointLength(string input, int index) => char.IsSurrogatePair(input, index) ? 2 : 1;
 
 	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> is a combining mark, such as a
+	/// Devanagari vowel sign or the U+0301 accent of a decomposed <c>"é"</c>.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <returns><c>true</c> if the code point is a non-spacing, spacing combining or enclosing mark; otherwise, <c>false</c>.</returns>
+	private static bool IsCombiningMark(string input, int index) =>
+		CharUnicodeInfo.GetUnicodeCategory(input, index) is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or UnicodeCategory.EnclosingMark;
+
+	/// <summary>
+	/// Returns the index of the code point that the combining marks ending at <paramref name="index"/>
+	/// attach to.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of a code point.</param>
+	/// <returns>
+	/// The index of the nearest code point at or before <paramref name="index"/> that is not a combining
+	/// mark, or the index of the first code point if every one up to <paramref name="index"/> is a mark.
+	/// </returns>
+	private static int SkipBackOverCombiningMarks(string input, int index)
+	{
+		while (index > 0 && IsCombiningMark(input, index))
+		{
+			index -= index >= 2 && char.IsSurrogatePair(input, index - 2) ? 2 : 1;
+		}
+
+		return index;
+	}
+
+	/// <summary>
 	/// Converts <paramref name="input"/> to uppercase with the invariant mapping, and also maps <c>"ı"</c> (U+0131) to <c>"I"</c>.
 	/// </summary>
 	/// <param name="input">The string to convert.</param>
@@ -45,8 +75,8 @@ public static partial class CaseConverter
 	private static string ToLowerInvariantFull(string input) => input.ToLowerInvariant().Replace('\u0130', 'i');
 
 	/// <summary>
-	/// Replaces every code point that is not a Unicode letter or an ASCII digit with a space,
-	/// except that an apostrophe between two letters is dropped.
+	/// Replaces every code point that is not a Unicode letter, combining mark or decimal digit with a
+	/// space, except that an apostrophe between two letters is dropped.
 	/// </summary>
 	/// <param name="input">The string to process.</param>
 	/// <returns>A new string with each non-alphanumeric code point replaced by a space.</returns>
@@ -56,6 +86,11 @@ public static partial class CaseConverter
 	/// <see cref="UnicodeCategory.Surrogate"/> rather than as a letter — so each half of a
 	/// surrogate pair matched and letters outside the Basic Multilingual Plane were silently
 	/// deleted instead of preserved.
+	/// <para>
+	/// A combining mark is part of the letter it follows, so the vowel signs of scripts such as
+	/// Devanagari and the accents of decomposed (NFD) Latin text are kept. A decimal digit from any
+	/// script, such as Arabic-Indic <c>"١٢٣"</c>, is kept like an ASCII digit.
+	/// </para>
 	/// <para>
 	/// An apostrophe (<c>'</c> or U+2019) between two letters is part of the word, as in
 	/// <c>"don't"</c> or <c>"o'neil"</c>, so it is dropped rather than turned into a separator. This
@@ -101,6 +136,10 @@ public static partial class CaseConverter
 				lowercaseNextLetter = false;
 				builder.Append(uppercaseSuffix ? ToUpperInvariantFull(letter) : letter);
 			}
+			else if (IsCombiningMark(input, i))
+			{
+				builder.Append(input, i, length);
+			}
 			else if (IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
 				uppercaseSuffix = char.IsUpper(input, previousStart) && AreLettersFromIndexLowercase(input, nextStart);
@@ -108,7 +147,15 @@ public static partial class CaseConverter
 			}
 			else
 			{
-				builder.Append(input[i] is >= '0' and <= '9' ? input[i] : ' ');
+				if (char.IsDigit(input, i))
+				{
+					builder.Append(input, i, length);
+				}
+				else
+				{
+					builder.Append(' ');
+				}
+
 				uppercaseSuffix = false;
 			}
 
@@ -250,6 +297,15 @@ public static partial class CaseConverter
 	/// <returns><c>true</c> if a space belongs before <paramref name="start"/>; otherwise, <c>false</c>.</returns>
 	private static bool IsWordBoundary(string input, int previousStart, int start, int nextStart, bool breakBeforeAnyNonLetter)
 	{
+		// A combining mark belongs to the letter before it, so no boundary falls before one, and a code
+		// point after it is judged against that letter rather than against the mark.
+		if (IsCombiningMark(input, start))
+		{
+			return false;
+		}
+
+		previousStart = SkipBackOverCombiningMarks(input, previousStart);
+
 		bool previousIsLetter = char.IsLetter(input, previousStart);
 		bool previousIsUpper = char.IsUpper(input, previousStart);
 		bool currentIsUpper = char.IsUpper(input, start);
@@ -537,13 +593,13 @@ public static partial class CaseConverter
 
 	/// <summary>
 	/// Determines whether the code point at <paramref name="index"/> belongs to a word, as
-	/// <see cref="LowercaseAllCapsWords"/> defines one: a letter or an apostrophe.
+	/// <see cref="LowercaseAllCapsWords"/> defines one: a letter, a combining mark or an apostrophe.
 	/// </summary>
 	/// <param name="input">The string to inspect.</param>
 	/// <param name="index">The index of the first code unit of the code point.</param>
 	/// <returns><c>true</c> if the code point is part of a word; otherwise, <c>false</c>.</returns>
 	private static bool IsWordCharacter(string input, int index) =>
-		char.IsLetter(input, index) || input[index] is '\'' or '\u2019';
+		char.IsLetter(input, index) || IsCombiningMark(input, index) || input[index] is '\'' or '\u2019';
 
 	/// <summary>
 	/// Returns a copy of this string converted to Title Case. Example: "the quick brown fox" becomes "The Quick Brown Fox".
