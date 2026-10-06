@@ -1,6 +1,6 @@
-## v1.8.7 (patch)
+## v1.8.8 (patch)
 
-Changes since v1.8.6:
+Changes since v1.8.7:
 
-- Keep a letter after a digit in the same word in Title, Pascal and Camel case [patch] ([@Claude](https://github.com/Claude))
+- Keep lowercase letters as they are in Snake, Kebab and Camel case [patch] ([@Claude](https://github.com/Claude))
 
