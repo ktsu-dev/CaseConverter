@@ -1,4 +1,6 @@
-## v1.8.5
+## v1.8.6 (patch)
 
-No significant changes detected since v1.8.5.
+Changes since v1.8.5:
+
+- Keep combining marks and non-ASCII digits in Pascal, Camel, Snake, Kebab and Macro case [patch] ([@Claude](https://github.com/Claude))
 
