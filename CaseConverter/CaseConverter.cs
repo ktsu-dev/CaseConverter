@@ -820,13 +820,56 @@ public static partial class CaseConverter
 	/// <c>"my URL handler"</c> become <c>"url"</c> and <c>"myUrlHandler"</c>. The decision is made per
 	/// word by <see cref="ToTitleCase(string)"/>, so a word converts the same way whatever else is in
 	/// the string.
+	/// <para>
+	/// A first letter that is already lowercase is kept as it is rather than uppercased by
+	/// <see cref="ToPascalCase(string)"/> and lowered again, which would turn the micro sign <c>"µ"</c>
+	/// into the Greek <c>"μ"</c>.
+	/// </para>
 	/// </remarks>
 	public static string ToCamelCase(this string input)
 	{
 		Ensure.NotNull(input);
 
 		string output = input.ToPascalCase();
-		return output.ToLowercaseFirstChar();
+		return KeepLowercaseFirstLetter(input, output) ?? output.ToLowercaseFirstChar();
+	}
+
+	/// <summary>
+	/// Returns <paramref name="pascal"/> with its first code point replaced by the first letter of
+	/// <paramref name="input"/>, when that letter is lowercase and is what the first code point was
+	/// uppercased from.
+	/// </summary>
+	/// <param name="input">The string being converted.</param>
+	/// <param name="pascal">The PascalCase form of <paramref name="input"/>.</param>
+	/// <returns>The camelCase string, or <c>null</c> if the first letter of <paramref name="input"/> is not kept.</returns>
+	private static string? KeepLowercaseFirstLetter(string input, string pascal)
+	{
+		int first = 0;
+
+		while (first < input.Length && !char.IsLetterOrDigit(input, first))
+		{
+			first += CodePointLength(input, first);
+		}
+
+		if (first >= input.Length || pascal.Length == 0 || !char.IsLower(input, first))
+		{
+			return null;
+		}
+
+		int length = CodePointLength(input, first);
+		int pascalLength = CodePointLength(pascal, 0);
+#if NETSTANDARD2_0
+#pragma warning disable IDE0057 // Substring cannot be simplified in netstandard2.0
+		string letter = input.Substring(first, length);
+		string mapped = pascal.Substring(0, pascalLength);
+		string rest = pascal.Substring(pascalLength);
+#pragma warning restore IDE0057
+#else
+		string letter = input[first..(first + length)];
+		string mapped = pascal[..pascalLength];
+		string rest = pascal[pascalLength..];
+#endif
+		return string.Equals(ToUpperInvariantFull(letter), mapped, StringComparison.Ordinal) ? letter + rest : null;
 	}
 
 	/// <summary>
@@ -834,10 +877,16 @@ public static partial class CaseConverter
 	/// </summary>
 	/// <param name="input">The string to convert.</param>
 	/// <returns>A new string in snake_case.</returns>
+	/// <remarks>
+	/// The words are lowercased directly rather than uppercased by <see cref="ToMacroCase(string)"/> and
+	/// lowered again. That round trip is not an identity for every lowercase letter: <c>"ς"</c> would come
+	/// back as <c>"σ"</c> and the micro sign <c>"µ"</c> as the Greek <c>"μ"</c>, so <c>"λόγος"</c> would
+	/// change spelling.
+	/// </remarks>
 	public static string ToSnakeCase(this string input)
 	{
 		Ensure.NotNull(input);
-		return ToLowerInvariantFull(input.ToMacroCase());
+		return JoinWordsWithUnderscores(input, ToLowerInvariantFull);
 	}
 
 	/// <summary>
@@ -867,10 +916,24 @@ public static partial class CaseConverter
 	public static string ToMacroCase(this string input)
 	{
 		Ensure.NotNull(input);
+		return JoinWordsWithUnderscores(input, ToUpperInvariantFull);
+	}
 
+	/// <summary>
+	/// Splits <paramref name="input"/> into words, case-maps them with <paramref name="caseMap"/>, and joins
+	/// them with single underscores.
+	/// </summary>
+	/// <param name="input">The string to convert.</param>
+	/// <param name="caseMap">The case mapping to apply to the split words.</param>
+	/// <returns>The case-mapped words joined with underscores.</returns>
+	/// <remarks>
+	/// MACRO_CASE and snake_case share this, so they always find the same words.
+	/// </remarks>
+	private static string JoinWordsWithUnderscores(string input, Func<string, string> caseMap)
+	{
 		string output = input.Trim();
 		output = ReplaceNonAlphaNumericWithSpace(output);
-		output = ToUpperInvariantFull(SplitOnCaseChange(output));
+		output = caseMap(SplitOnCaseChange(output));
 		output = CollapseSpaces(output).Trim();
 #if NETSTANDARD2_0
 		output = output.Replace(" ", "_");
