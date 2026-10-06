@@ -178,6 +178,25 @@ public class CaseConverterTests
 		Assert.AreEqual("Abc 123", "abc123".ToTitleCase());
 	}
 
+	// A letter after a digit does not start a word: snake_case keeps "1st" whole, so Title, Pascal and
+	// Camel case must too, or converting through one case into another changes the words.
+
+	[TestMethod]
+	[DataRow("1st place", "1st Place", "1stPlace", "1stPlace", "1st_place")]
+	[DataRow("abc123def", "Abc 123def", "Abc123def", "abc123def", "abc_123def")]
+	[DataRow("md5hash", "Md 5hash", "Md5hash", "md5hash", "md_5hash")]
+	[DataRow("3d model", "3d Model", "3dModel", "3dModel", "3d_model")]
+	public void ALetterAfterADigitShouldNotStartANewWord(string input, string title, string pascal, string camel, string snake)
+	{
+		Assert.AreEqual(title, input.ToTitleCase());
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToPascalCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToCamelCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToTitleCase().ToSnakeCase());
+	}
+
 	// A plural acronym ends in a lowercase "s", which the acronym-tail rule ("XMLDoc" -> "XML Doc") used
 	// to read as the start of a capitalised word, splitting "APIs" into "AP Is".
 
