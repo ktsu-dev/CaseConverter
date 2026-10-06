@@ -1,6 +1,6 @@
-## v1.8.6 (patch)
+## v1.8.7 (patch)
 
-Changes since v1.8.5:
+Changes since v1.8.6:
 
-- Keep combining marks and non-ASCII digits in Pascal, Camel, Snake, Kebab and Macro case [patch] ([@Claude](https://github.com/Claude))
+- Keep a letter after a digit in the same word in Title, Pascal and Camel case [patch] ([@Claude](https://github.com/Claude))
 
