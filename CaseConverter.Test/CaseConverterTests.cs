@@ -614,6 +614,29 @@ public class CaseConverterTests
 		Assert.AreEqual(once, once.ToMacroCase());
 	}
 
+	// Uppercasing and lowering again is not an identity for some lowercase letters: final sigma "ς"
+	// comes back as "σ", and the micro sign "µ" (U+00B5) as the Greek "μ" (U+03BC).
+
+	[TestMethod]
+	[DataRow("λόγος", "λόγος", "λόγος")]
+	[DataRow("already_snake_ς", "already_snake_ς", "already-snake-ς")]
+	[DataRow("µs delay", "µs_delay", "µs-delay")]
+	[DataRow("ſtraße", "ſtraße", "ſtraße")]
+	[DataRow("kırmızı", "kırmızı", "kırmızı")]
+	public void ToSnakeCaseAndToKebabCaseShouldKeepLowercaseLetters(string input, string snake, string kebab)
+	{
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(kebab, input.ToKebabCase());
+		Assert.AreEqual(snake, snake.ToSnakeCase());
+	}
+
+	[TestMethod]
+	[DataRow("µs delay", "µsDelay")]
+	[DataRow("ςx", "ςx")]
+	[DataRow("ılık su", "ılıkSu")]
+	public void ToCamelCaseShouldKeepALowercaseFirstLetter(string input, string camel) =>
+		Assert.AreEqual(camel, input.ToCamelCase());
+
 	[TestMethod]
 	public void IsAllCapsShouldTreatDotlessSmallIAsLowercase()
 	{
