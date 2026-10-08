@@ -81,6 +81,10 @@ string constantName = variableName.ToMacroCase(); // "CUSTOMER_ORDER_DETAILS"
 string withAcronym = "API_response_URL";
 string pascalWithAcronym = withAcronym.ToPascalCase(); // "ApiResponseUrl"
 
+// Adjacent one-letter words fold together, so the output converts back to itself
+string coords = "vector x y".ToPascalCase(); // "VectorXy", not "VectorXY"
+string folded = "vector_x_y".ToPascalCase().ToSnakeCase(); // "vector_xy"
+
 // First character transformations
 string sentence = "lorem ipsum dolor sit amet";
 string capitalized = sentence.ToUppercaseFirstChar(); // "Lorem ipsum dolor sit amet"

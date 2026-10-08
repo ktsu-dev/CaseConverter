@@ -699,4 +699,26 @@ public class CaseConverterTests
 		Assert.AreEqual("café_bar", "caféBar".ToSnakeCase());
 		Assert.AreEqual("été_xml_doc", "étéXMLDoc".ToSnakeCase());
 	}
+
+	// Adjacent one-letter words would join into a run of capitals ("VectorXY") that reads back as one
+	// all-caps word, so every one-letter word after the first in a run is lowercased instead.
+	[TestMethod]
+	[DataRow("vector x y", "VectorXy", "vectorXy")]
+	[DataRow("a b c", "Abc", "abc")]
+	[DataRow("x_y", "Xy", "xy")]
+	public void AdjacentOneLetterWordsShouldConvertToOutputThatConvertsBackToItself(string input, string pascal, string camel)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(pascal, input.ToPascalCase().ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(camel, input.ToCamelCase().ToCamelCase());
+	}
+
+	[TestMethod]
+	public void AdjacentOneLetterWordsShouldFoldTogetherThroughPascalCase()
+	{
+		// The boundary between adjacent one-letter words is lost by design; a lone one is kept.
+		Assert.AreEqual("vector_xy", "vector_x_y".ToPascalCase().ToSnakeCase());
+		Assert.AreEqual("get_a_value", "get_a_value".ToPascalCase().ToSnakeCase());
+	}
 }
