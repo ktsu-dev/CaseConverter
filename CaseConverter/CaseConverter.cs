@@ -792,6 +792,13 @@ public static partial class CaseConverter
 	/// <c>"set MAX_SIZE"</c> become <c>"MaxSize"</c> and <c>"SetMaxSize"</c>. The decision is made per
 	/// word by <see cref="ToTitleCase(string)"/>, so a word converts the same way whatever else is in
 	/// the string.
+	/// <para>
+	/// A one-letter word that follows another one-letter word is lowercased, so <c>"vector x y"</c>
+	/// becomes <c>"VectorXy"</c> rather than <c>"VectorXY"</c>, which would read back as the all-caps
+	/// word <c>"XY"</c>. The output then converts back to itself, but the boundary between adjacent
+	/// one-letter words is lost by design: <c>"vector_x_y".ToPascalCase().ToSnakeCase()</c> is
+	/// <c>"vector_xy"</c>.
+	/// </para>
 	/// </remarks>
 	public static string ToPascalCase(this string input)
 	{
@@ -801,6 +808,7 @@ public static partial class CaseConverter
 		output = ReplaceNonAlphaNumericWithSpace(output);
 		output = SplitOnCaseChange(output);
 		output = output.ToTitleCase();
+		output = LowercaseOneLetterWordsAfterOneLetterWords(output);
 #if NETSTANDARD2_0
 		output = output.Replace(" ", string.Empty);
 #else
@@ -808,6 +816,61 @@ public static partial class CaseConverter
 #endif
 
 		return output;
+	}
+
+	/// <summary>
+	/// Lowercases each one-letter word that directly follows another one-letter word.
+	/// </summary>
+	/// <param name="input">The space-separated output of <see cref="ToTitleCase(string)"/>.</param>
+	/// <returns>A new string with the second and later letters of each run of one-letter words lowercased.</returns>
+	/// <remarks>
+	/// Joined without spaces, a run of capitalized one-letter words such as <c>"Vector X Y"</c> would
+	/// become <c>"VectorXY"</c>, which reads back as the all-caps word <c>"XY"</c> and is normalized to
+	/// <c>"VectorXy"</c> on the next conversion. Lowering the later letters here gives
+	/// <c>"VectorXy"</c> on the first pass, so PascalCase and camelCase output converts back to itself.
+	/// </remarks>
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "Lowercasing is the point: the letter continues the previous one-letter word.")]
+	private static string LowercaseOneLetterWordsAfterOneLetterWords(string input)
+	{
+		string[] words = input.Split(' ');
+		bool previousIsOneLetter = false;
+
+		for (int i = 0; i < words.Length; i++)
+		{
+			bool isOneLetter = IsOneLetterWord(words[i]);
+
+			if (isOneLetter && previousIsOneLetter)
+			{
+				words[i] = ToLowerInvariantFull(words[i]);
+			}
+
+			previousIsOneLetter = isOneLetter;
+		}
+
+		return string.Join(" ", words);
+	}
+
+	/// <summary>
+	/// Determines whether <paramref name="word"/> is a single letter, optionally followed by combining marks.
+	/// </summary>
+	/// <param name="word">The word to inspect.</param>
+	/// <returns><c>true</c> if the word is one letter; otherwise, <c>false</c>.</returns>
+	private static bool IsOneLetterWord(string word)
+	{
+		if (word.Length == 0 || !char.IsLetter(word, 0))
+		{
+			return false;
+		}
+
+		for (int i = CodePointLength(word, 0); i < word.Length; i += CodePointLength(word, i))
+		{
+			if (!IsCombiningMark(word, i))
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/// <summary>
@@ -819,7 +882,8 @@ public static partial class CaseConverter
 	/// An all-caps word is normalized rather than preserved as an acronym, so <c>"URL"</c> and
 	/// <c>"my URL handler"</c> become <c>"url"</c> and <c>"myUrlHandler"</c>. The decision is made per
 	/// word by <see cref="ToTitleCase(string)"/>, so a word converts the same way whatever else is in
-	/// the string.
+	/// the string. Adjacent one-letter words fold together as described for
+	/// <see cref="ToPascalCase(string)"/>, so <c>"vector x y"</c> becomes <c>"vectorXy"</c>.
 	/// <para>
 	/// A first letter that is already lowercase is kept as it is rather than uppercased by
 	/// <see cref="ToPascalCase(string)"/> and lowered again, which would turn the micro sign <c>"µ"</c>
