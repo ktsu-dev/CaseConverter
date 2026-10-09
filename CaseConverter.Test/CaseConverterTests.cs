@@ -722,6 +722,31 @@ public class CaseConverterTests
 		Assert.AreEqual("get_a_value", "get_a_value".ToPascalCase().ToSnakeCase());
 	}
 
+	// A caseless letter (Han, kana, Hangul) has no lowercase form, so it must not make a Latin
+	// acronym joined to it look "not all caps" and skip the acronym's normalization.
+	[TestMethod]
+	[DataRow("API名", "Api名", "api名", "Api名")]
+	[DataRow("SQL文", "Sql文", "sql文", "Sql文")]
+	[DataRow("URLの取得", "Urlの取得", "urlの取得", "Urlの取得")]
+	[DataRow("HTTP요청", "Http요청", "http요청", "Http요청")]
+	public void AnAcronymJoinedToCaselessLettersShouldBeNormalized(string input, string pascal, string camel, string title)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(title, input.ToTitleCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToCamelCase().ToSnakeCase());
+		Assert.AreEqual(input.ToPascalCase(), input.ToSnakeCase().ToPascalCase());
+	}
+
+	[TestMethod]
+	public void IsAllCapsShouldIgnoreCaselessLetters()
+	{
+		Assert.IsTrue("API名".IsAllCaps());
+		Assert.IsTrue("名".IsAllCaps());
+		Assert.IsFalse("Api名".IsAllCaps());
+		Assert.IsFalse("\u01C5".IsAllCaps());
+	}
+
 	// A letter after a digit stays in the digit's word (#78). MACRO_CASE uppercases those letters,
 	// so a run of capitals after a digit that ends the word must stay in it too, or MACRO_CASE output
 	// gains a boundary every time it is converted again.
