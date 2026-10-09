@@ -721,4 +721,29 @@ public class CaseConverterTests
 		Assert.AreEqual("vector_xy", "vector_x_y".ToPascalCase().ToSnakeCase());
 		Assert.AreEqual("get_a_value", "get_a_value".ToPascalCase().ToSnakeCase());
 	}
+
+	// A letter after a digit stays in the digit's word (#78). MACRO_CASE uppercases those letters,
+	// so a run of capitals after a digit that ends the word must stay in it too, or MACRO_CASE output
+	// gains a boundary every time it is converted again.
+	[TestMethod]
+	[DataRow("1st place")]
+	[DataRow("2fa code")]
+	[DataRow("win32api")]
+	[DataRow("123abc")]
+	public void MacroCaseOutputWithLettersAfterADigitShouldConvertBackToItself(string input)
+	{
+		string macro = input.ToMacroCase();
+		Assert.AreEqual(macro, macro.ToMacroCase());
+		Assert.AreEqual(input.ToSnakeCase(), macro.ToSnakeCase());
+		Assert.AreEqual(input.ToPascalCase(), macro.ToPascalCase());
+	}
+
+	[TestMethod]
+	public void ACapitalisedWordAfterADigitShouldStillStartANewWord()
+	{
+		Assert.AreEqual("1st_place", "1ST_PLACE".ToSnakeCase());
+		Assert.AreEqual("utf_8_string", "UTF8String".ToSnakeCase());
+		Assert.AreEqual("win_32_api", "Win32Api".ToSnakeCase());
+		Assert.AreEqual("win_32api", "Win32API".ToSnakeCase());
+	}
 }

@@ -323,7 +323,9 @@ public static partial class CaseConverter
 
 		// The start of a capitalised word: "fooBar" breaks before the "B". Only a letter or digit can
 		// end the word before it, so "(Hello" and "don'T" do not split away from their punctuation.
-		if (EndsWordThatIsNotUppercase(input, previousStart) && currentIsUpper && (previousIsLetter || char.IsDigit(input, previousStart)))
+		// After a digit, a run of capitals that ends the word is that word's own letters uppercased,
+		// as MACRO_CASE writes "1st" as "1ST", so it stays in the digit's word.
+		if (EndsWordThatIsNotUppercase(input, previousStart) && currentIsUpper && (previousIsLetter || (char.IsDigit(input, previousStart) && !IsWholeCapitalRun(input, start))))
 		{
 			return true;
 		}
@@ -336,6 +338,41 @@ public static partial class CaseConverter
 		}
 
 		return breakBeforeAnyNonLetter || char.IsDigit(input, start);
+	}
+
+	/// <summary>
+	/// Determines whether a run of at least two capitals starts at <paramref name="index"/> and ends its
+	/// word, at the end of the string or before a non-letter.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first capital of the run.</param>
+	/// <returns><c>true</c> if the run is the rest of an all-caps word; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// After a digit, such a run is how <see cref="ToMacroCase(string)"/> writes the letters of a word
+	/// such as <c>"1st"</c> or <c>"win32api"</c>, so <c>"1ST"</c> and <c>"WIN_32API"</c> stay whole. A
+	/// capital that starts a capitalised word is not a run that ends the word, so <c>"UTF8String"</c>
+	/// and <c>"Win32Api"</c> still break after the digit. A single capital is left breaking too: it
+	/// cannot be told apart from a one-letter word, as in <c>"X١٢٣Y"</c>.
+	/// </remarks>
+	private static bool IsWholeCapitalRun(string input, int index)
+	{
+		int capitals = 0;
+
+		while (index < input.Length && (char.IsLetter(input, index) || IsCombiningMark(input, index)))
+		{
+			if (char.IsUpper(input, index))
+			{
+				capitals++;
+			}
+			else if (!IsCombiningMark(input, index) && !IsLowercaseWithNoUppercase(input, index))
+			{
+				return false;
+			}
+
+			index += CodePointLength(input, index);
+		}
+
+		return capitals >= 2;
 	}
 
 	/// <summary>
