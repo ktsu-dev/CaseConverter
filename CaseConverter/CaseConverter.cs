@@ -737,7 +737,10 @@ public static partial class CaseConverter
 	/// Determines whether all alphabetic characters in the specified string are uppercase.
 	/// </summary>
 	/// <param name="output">The string to check.</param>
-	/// <returns><c>true</c> if all alphabetic characters are uppercase; otherwise, <c>false</c>.</returns>
+	/// <returns>
+	/// <c>true</c> if no letter in the string is lowercase or titlecase; otherwise, <c>false</c>.
+	/// Letters without case, such as Han, kana or Hangul, are ignored, so a string made only of them is vacuously all caps.
+	/// </returns>
 	public static bool IsAllCaps(this string output)
 	{
 		Ensure.NotNull(output);
@@ -746,9 +749,13 @@ public static partial class CaseConverter
 		{
 			int length = CodePointLength(output, i);
 
-			// A lowercase letter with no uppercase form, such as "ß", is left as it is by uppercasing,
-			// so it does not stop "STRAßE" from being all caps.
-			if (char.IsLetter(output, i) && !char.IsUpper(output, i) && !IsLowercaseWithNoUppercase(output, i))
+			// Only a letter that has case can stop a string being all caps. A caseless letter, such as
+			// the Han, kana or Hangul in "API名", has no lowercase form to be in, so it is skipped like a
+			// digit. A lowercase letter with no uppercase form, such as "ß", is left as it is by
+			// uppercasing, so it does not stop "STRAßE" from being all caps either.
+			UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(output, i);
+			if ((category == UnicodeCategory.LowercaseLetter || category == UnicodeCategory.TitlecaseLetter)
+				&& !IsLowercaseWithNoUppercase(output, i))
 			{
 				return false;
 			}
