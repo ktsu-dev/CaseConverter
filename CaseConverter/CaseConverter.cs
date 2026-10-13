@@ -142,8 +142,9 @@ public static partial class CaseConverter
 			}
 			else if (IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
-				uppercaseSuffix = char.IsUpper(input, previousStart) && AreLettersFromIndexLowercase(input, nextStart);
-				lowercaseNextLetter = !uppercaseSuffix && IsCapitalAfterApostropheInLowercaseContext(input, previousStart, nextStart);
+				int previousLetterStart = SkipBackOverCombiningMarks(input, previousStart);
+				uppercaseSuffix = char.IsUpper(input, previousLetterStart) && AreLettersFromIndexLowercase(input, nextStart);
+				lowercaseNextLetter = !uppercaseSuffix && IsCapitalAfterApostropheInLowercaseContext(input, previousLetterStart, nextStart);
 			}
 			else
 			{
@@ -228,11 +229,15 @@ public static partial class CaseConverter
 	/// <param name="start">The index of the code point to test.</param>
 	/// <param name="nextStart">The index of the following code point, which may be past the end.</param>
 	/// <returns><c>true</c> if the code point is an in-word apostrophe; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// A combining mark before the apostrophe is skipped to reach its base letter, so a decomposed accent
+	/// (<c>"e"</c> + U+0301) counts as a letter just as the composed <c>"é"</c> does.
+	/// </remarks>
 	private static bool IsApostropheWithinWord(string input, int previousStart, int start, int nextStart) =>
 		input[start] is '\'' or '\u2019'
 		&& previousStart >= 0
 		&& nextStart < input.Length
-		&& char.IsLetter(input, previousStart)
+		&& char.IsLetter(input, SkipBackOverCombiningMarks(input, previousStart))
 		&& char.IsLetter(input, nextStart);
 
 	/// <summary>

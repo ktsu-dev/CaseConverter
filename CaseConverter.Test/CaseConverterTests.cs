@@ -510,6 +510,36 @@ public class CaseConverterTests
 		Assert.AreEqual(macro, input.ToMacroCase());
 	}
 
+	// An apostrophe after a decomposed accent ("e" + U+0301) followed the combining mark rather than its
+	// base letter, so it split the word: NFD "café's menu" gave "café_s_menu" where NFC gave "cafés_menu".
+	[TestMethod]
+	[DataRow("cafe\u0301's menu", "caf\u00e9's menu")]
+	[DataRow("cafe\u0301\u2019s menu", "caf\u00e9\u2019s menu")]
+	[DataRow("CAFE\u0301'S menu", "CAF\u00c9'S menu")]
+	[DataRow("CAFE\u0301's menu", "CAF\u00c9's menu")]
+	[DataRow("Ne\u0301'Ville", "N\u00e9'Ville")]
+	public void AnApostropheAfterACombiningMarkShouldConvertLikeItsComposedSpelling(string decomposed, string composed)
+	{
+		// The test host runs with invariant globalization, where string.Normalize is unavailable, so the
+		// composed accent is spelled out and swapped back in to compare.
+		static string Compose(string text) => text.Replace("e\u0301", "\u00e9", StringComparison.Ordinal).Replace("E\u0301", "\u00c9", StringComparison.Ordinal);
+
+		Assert.AreEqual(composed.ToPascalCase(), Compose(decomposed.ToPascalCase()));
+		Assert.AreEqual(composed.ToCamelCase(), Compose(decomposed.ToCamelCase()));
+		Assert.AreEqual(composed.ToSnakeCase(), Compose(decomposed.ToSnakeCase()));
+		Assert.AreEqual(composed.ToKebabCase(), Compose(decomposed.ToKebabCase()));
+		Assert.AreEqual(composed.ToMacroCase(), Compose(decomposed.ToMacroCase()));
+		Assert.AreEqual(composed.ToTitleCase(), Compose(decomposed.ToTitleCase()));
+	}
+
+	[TestMethod]
+	[DataRow("cafe\u0301's menu", "cafe\u0301s_menu")]
+	[DataRow("cafe\u0301\u2019s menu", "cafe\u0301s_menu")]
+	public void AnApostropheAfterACombiningMarkShouldNotSplitTheWord(string input, string snake)
+	{
+		Assert.AreEqual(snake, input.ToSnakeCase());
+	}
+
 	[TestMethod]
 	[DataRow("'quoted' word", "quoted_word")]
 	[DataRow("\u2019quoted\u2019 word", "quoted_word")]
