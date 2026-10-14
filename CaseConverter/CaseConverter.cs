@@ -51,6 +51,23 @@ public static partial class CaseConverter
 	}
 
 	/// <summary>
+	/// Returns the index of the first code point at or after <paramref name="index"/> that is not a
+	/// combining mark, so that a decomposed accent is looked past to the letter after it.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index to start from, which may be past the end.</param>
+	/// <returns>The index found, or the length of <paramref name="input"/> if there is none.</returns>
+	private static int SkipOverCombiningMarks(string input, int index)
+	{
+		while (index < input.Length && IsCombiningMark(input, index))
+		{
+			index += CodePointLength(input, index);
+		}
+
+		return index;
+	}
+
+	/// <summary>
 	/// Converts <paramref name="input"/> to uppercase with the invariant mapping, and also maps <c>"ı"</c> (U+0131) to <c>"I"</c>.
 	/// </summary>
 	/// <param name="input">The string to convert.</param>
@@ -311,8 +328,10 @@ public static partial class CaseConverter
 		bool currentIsUpper = char.IsUpper(input, start);
 
 		// A lowercase letter with no uppercase form, such as "ß" or "ﬁ", survives uppercasing, so it
-		// takes the case of the nearest letter that has one: "STRAßE" is a single all-caps word.
-		int casedNextStart = SkipLowercaseWithNoUppercase(input, nextStart);
+		// takes the case of the nearest letter that has one: "STRAßE" is a single all-caps word. The
+		// combining marks of a decomposed capital ("E" + U+0301) are skipped first, so "XMLÉtude"
+		// splits the same way whether its "É" is composed or not.
+		int casedNextStart = SkipLowercaseWithNoUppercase(input, SkipOverCombiningMarks(input, nextStart));
 
 		// The tail of an acronym run that begins a new word: "XMLDoc" breaks before the "D". A lone
 		// plural "s" is not a word, so "APIs" and "getIDs" keep the acronym whole.
@@ -397,8 +416,9 @@ public static partial class CaseConverter
 			return false;
 		}
 
+		// A combining mark makes the "s" a different letter, as the composed "ś" is, so it is not a plural.
 		int nextStart = index + 1;
-		return nextStart >= input.Length || !char.IsLetter(input, nextStart) || char.IsUpper(input, nextStart);
+		return nextStart >= input.Length || (!char.IsLetter(input, nextStart) && !IsCombiningMark(input, nextStart)) || char.IsUpper(input, nextStart);
 	}
 
 	/// <summary>

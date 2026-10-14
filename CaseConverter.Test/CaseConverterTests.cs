@@ -700,6 +700,40 @@ public class CaseConverterTests
 		Assert.AreEqual("été_xml_doc", "étéXMLDoc".ToSnakeCase());
 	}
 
+	// The acronym-tail rule looked at the code point straight after a capital to see whether a lowercase
+	// letter followed. In NFD that is the combining mark of an accented capital ("E" + U+0301), so the
+	// acronym merged into the next word: NFD "getIDÉtat" gave "get_idétat" where NFC gave "get_id_état".
+	[TestMethod]
+	[DataRow("getIDE\u0301tat", "getID\u00c9tat")]
+	[DataRow("XMLE\u0301tude", "XML\u00c9tude")]
+	[DataRow("IDs\u0301", "ID\u015b")]
+	public void AnAccentedCapitalAfterAnAcronymShouldConvertLikeItsComposedSpelling(string decomposed, string composed)
+	{
+		// The test host runs with invariant globalization, where string.Normalize is unavailable, so the
+		// composed letters are spelled out and swapped back in to compare.
+		static string Compose(string text) => text
+			.Replace("E\u0301", "\u00c9", StringComparison.Ordinal)
+			.Replace("e\u0301", "\u00e9", StringComparison.Ordinal)
+			.Replace("S\u0301", "\u015a", StringComparison.Ordinal)
+			.Replace("s\u0301", "\u015b", StringComparison.Ordinal);
+
+		Assert.AreEqual(composed.ToPascalCase(), Compose(decomposed.ToPascalCase()));
+		Assert.AreEqual(composed.ToCamelCase(), Compose(decomposed.ToCamelCase()));
+		Assert.AreEqual(composed.ToSnakeCase(), Compose(decomposed.ToSnakeCase()));
+		Assert.AreEqual(composed.ToKebabCase(), Compose(decomposed.ToKebabCase()));
+		Assert.AreEqual(composed.ToMacroCase(), Compose(decomposed.ToMacroCase()));
+		Assert.AreEqual(composed.ToTitleCase(), Compose(decomposed.ToTitleCase()));
+	}
+
+	[TestMethod]
+	[DataRow("getIDE\u0301tat", "get_id_e\u0301tat", "GetIdE\u0301tat")]
+	[DataRow("XMLE\u0301tude", "xml_e\u0301tude", "XmlE\u0301tude")]
+	public void AnAcronymBeforeADecomposedAccentedWordShouldSplitFromIt(string input, string snake, string pascal)
+	{
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(pascal, input.ToPascalCase());
+	}
+
 	// Adjacent one-letter words would join into a run of capitals ("VectorXY") that reads back as one
 	// all-caps word, so every one-letter word after the first in a run is lowercased instead.
 	[TestMethod]
