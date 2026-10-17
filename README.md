@@ -85,6 +85,9 @@ string pascalWithAcronym = withAcronym.ToPascalCase(); // "ApiResponseUrl"
 string coords = "vector x y".ToPascalCase(); // "VectorXy", not "VectorXY"
 string folded = "vector_x_y".ToPascalCase().ToSnakeCase(); // "vector_xy"
 
+// So does a two-letter word ending in "s" after a one-letter word, which would otherwise read back as a plural acronym
+string timeout = "wait n ms".ToPascalCase(); // "WaitNms", not "WaitNMs"
+
 // First character transformations
 string sentence = "lorem ipsum dolor sit amet";
 string capitalized = sentence.ToUppercaseFirstChar(); // "Lorem ipsum dolor sit amet"
