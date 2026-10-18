@@ -225,12 +225,18 @@ public static partial class CaseConverter
 	/// <c>"ONeil"</c>, which <see cref="SplitOnCaseChange(string)"/> splits into <c>"O Neil"</c>, so
 	/// <c>"O'Neil"</c> would convert differently from <c>"o'neil"</c> and <c>"O'NEIL"</c>.
 	/// </para>
+	/// <para>
+	/// The mirror case lowercases the whole run of capitals after the apostrophe when the letter before it
+	/// is lowercase, as in <c>"o'NEIL"</c> or <c>"l'API"</c>. Otherwise <c>"oNEIL"</c> would split into
+	/// <c>"o NEIL"</c>, although <c>"o'neil"</c> and <c>"O'NEIL"</c> both stay one word.
+	/// </para>
 	/// </remarks>
 	private static string ReplaceNonAlphaNumericWithSpace(string input)
 	{
 		StringBuilder builder = new(input.Length);
 		int previousStart = -1;
 		bool uppercaseSuffix = false;
+		bool lowercaseSuffix = false;
 		bool lowercaseNextLetter = false;
 
 		for (int i = 0; i < input.Length;)
@@ -247,9 +253,8 @@ public static partial class CaseConverter
 #else
 				string letter = input[i..nextStart];
 #endif
-				letter = LowercaseIf(letter, lowercaseNextLetter);
+				builder.Append(CaseLetter(letter, lowercaseNextLetter || lowercaseSuffix, uppercaseSuffix));
 				lowercaseNextLetter = false;
-				builder.Append(uppercaseSuffix ? ToUpperInvariantFull(letter) : letter);
 			}
 			else if (IsCombiningMark(input, i))
 			{
@@ -259,6 +264,7 @@ public static partial class CaseConverter
 			{
 				int previousLetterStart = SkipBackOverCombiningMarks(input, previousStart);
 				uppercaseSuffix = char.IsUpper(input, previousLetterStart) && AreLettersFromIndexLowercase(input, nextStart);
+				lowercaseSuffix = IsCapitalRunAfterLowercaseLetter(input, previousLetterStart, nextStart);
 				lowercaseNextLetter = !uppercaseSuffix && IsCapitalAfterApostropheInLowercaseContext(input, previousLetterStart, nextStart);
 			}
 			else
@@ -273,6 +279,7 @@ public static partial class CaseConverter
 				}
 
 				uppercaseSuffix = false;
+				lowercaseSuffix = false;
 			}
 
 			previousStart = i;
@@ -281,6 +288,31 @@ public static partial class CaseConverter
 
 		return builder.ToString();
 	}
+
+	/// <summary>
+	/// Returns <paramref name="letter"/> lowercased when <paramref name="lowercase"/> is set, then uppercased
+	/// when <paramref name="uppercase"/> is set.
+	/// </summary>
+	/// <param name="letter">The letter, as a string of one or two UTF-16 code units.</param>
+	/// <param name="lowercase">Whether to lowercase it.</param>
+	/// <param name="uppercase">Whether to uppercase it.</param>
+	/// <returns>The letter, case-mapped as asked.</returns>
+	private static string CaseLetter(string letter, bool lowercase, bool uppercase)
+	{
+		letter = LowercaseIf(letter, lowercase);
+		return uppercase ? ToUpperInvariantFull(letter) : letter;
+	}
+
+	/// <summary>
+	/// Determines whether the letter before an in-word apostrophe is lowercase and every letter in the run
+	/// after it is uppercase, as in <c>"o'NEIL"</c>.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="previousStart">The index of the letter before the apostrophe.</param>
+	/// <param name="nextStart">The index of the letter after the apostrophe.</param>
+	/// <returns><c>true</c> if the run after the apostrophe should be lowercased; otherwise, <c>false</c>.</returns>
+	private static bool IsCapitalRunAfterLowercaseLetter(string input, int previousStart, int nextStart) =>
+		char.IsLower(input, previousStart) && AreLettersFromIndexUppercase(input, nextStart);
 
 	/// <summary>
 	/// Returns <paramref name="letter"/> lowercased when <paramref name="lowercase"/> is set, otherwise unchanged.
@@ -327,6 +359,25 @@ public static partial class CaseConverter
 		for (int i = start; i < input.Length && char.IsLetter(input, i); i += CodePointLength(input, i))
 		{
 			if (!char.IsLower(input, i))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/// <summary>
+	/// Determines whether every letter in the run of letters starting at <paramref name="start"/> is uppercase.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="start">The index of the first letter of the run.</param>
+	/// <returns><c>true</c> if every letter in the run is uppercase; otherwise, <c>false</c>.</returns>
+	private static bool AreLettersFromIndexUppercase(string input, int start)
+	{
+		for (int i = start; i < input.Length && char.IsLetter(input, i); i += CodePointLength(input, i))
+		{
+			if (!char.IsUpper(input, i))
 			{
 				return false;
 			}
