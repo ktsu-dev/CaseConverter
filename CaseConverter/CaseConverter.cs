@@ -348,8 +348,12 @@ public static partial class CaseConverter
 		// The start of a capitalised word: "fooBar" breaks before the "B". Only a letter or digit can
 		// end the word before it, so "(Hello" and "don'T" do not split away from their punctuation.
 		// After a digit, a run of capitals that ends the word is that word's own letters uppercased,
-		// as MACRO_CASE writes "1st" as "1ST", so it stays in the digit's word.
-		if (EndsWordThatIsNotUppercase(input, previousStart) && currentIsUpper && (previousIsLetter || (char.IsDigit(input, previousStart) && !IsWholeCapitalRun(input, start))))
+		// as MACRO_CASE writes "1st" as "1ST", so it stays in the digit's word. A caseless letter (Han,
+		// kana, Hangul) is treated the same way: MACRO_CASE writes "用户id" as "用户ID", so that run stays
+		// whole too, while "名Abc" still breaks before the "A".
+		bool previousIsCaseless = IsCaselessLetter(input, previousStart);
+		if (EndsWordThatIsNotUppercase(input, previousStart) && currentIsUpper
+			&& ((previousIsLetter && !previousIsCaseless) || ((previousIsCaseless || char.IsDigit(input, previousStart)) && !IsWholeCapitalRun(input, start))))
 		{
 			return true;
 		}
@@ -363,6 +367,16 @@ public static partial class CaseConverter
 
 		return breakBeforeAnyNonLetter || char.IsDigit(input, start);
 	}
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> is a letter without case, such as
+	/// Han, kana or Hangul.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <returns><c>true</c> if the code point is a letter that is neither uppercase, lowercase nor titlecase; otherwise, <c>false</c>.</returns>
+	private static bool IsCaselessLetter(string input, int index) =>
+		CharUnicodeInfo.GetUnicodeCategory(input, index) is UnicodeCategory.OtherLetter or UnicodeCategory.ModifierLetter;
 
 	/// <summary>
 	/// Determines whether a run of at least two capitals starts at <paramref name="index"/> and ends its

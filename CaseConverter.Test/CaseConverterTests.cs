@@ -802,6 +802,31 @@ public class CaseConverterTests
 		Assert.AreEqual(input.ToPascalCase(), input.ToSnakeCase().ToPascalCase());
 	}
 
+	// MACRO_CASE uppercases the Latin letters after a caseless letter, so "用户id" becomes "用户ID". That run
+	// of capitals has to stay in the caseless letter's word, or converting the output again splits it.
+	[TestMethod]
+	[DataRow("用户id")]
+	[DataRow("用户ID")]
+	[DataRow("ユーザーname")]
+	[DataRow("ユーザーNAME")]
+	[DataRow("名abc")]
+	[DataRow("名ABC")]
+	public void MacroCaseOutputAfterCaselessLettersShouldConvertBackToItself(string input)
+	{
+		string macro = input.ToMacroCase();
+		Assert.AreEqual(macro, macro.ToMacroCase());
+		Assert.AreEqual(input.ToSnakeCase(), macro.ToSnakeCase());
+	}
+
+	[TestMethod]
+	public void ACapitalisedWordAfterCaselessLettersShouldStillStartANewWord()
+	{
+		Assert.AreEqual("用户id", "用户ID".ToSnakeCase());
+		Assert.AreEqual("用户id", "用户id".ToSnakeCase());
+		Assert.AreEqual("名_abc", "名Abc".ToSnakeCase());
+		Assert.AreEqual("用户_id_name", "用户IdName".ToSnakeCase());
+	}
+
 	[TestMethod]
 	public void IsAllCapsShouldIgnoreCaselessLetters()
 	{
