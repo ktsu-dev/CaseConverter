@@ -864,4 +864,30 @@ public class CaseConverterTests
 		Assert.AreEqual("win_32_api", "Win32Api".ToSnakeCase());
 		Assert.AreEqual("win_32api", "Win32API".ToSnakeCase());
 	}
+
+	// Unicode's full lowercase mapping turns a word-final "Σ" into the final sigma "ς"; the invariant
+	// mapping always gives the medial "σ". Lowercase Greek input already kept its "ς" (#84), so all-caps
+	// input has to produce it too, or the same word converts differently from its MACRO_CASE spelling.
+	[TestMethod]
+	[DataRow("ΛΟΓΟΣ", "λογος", "λογος", "Λογος", "λογος", "Λογος")]
+	[DataRow("ΟΔΟΣ ΣΤΑΘΜΟΣ", "οδος_σταθμος", "οδος-σταθμος", "ΟδοςΣταθμος", "οδοςΣταθμος", "Οδος Σταθμος")]
+	[DataRow("ΑΣ_Β", "ας_β", "ας-β", "ΑςΒ", "αςΒ", "Ας Β")]
+	[DataRow("ΣΑΣ", "σας", "σας", "Σας", "σας", "Σας")]
+	[DataRow("Σ", "σ", "σ", "Σ", "σ", "Σ")]
+	public void AWordFinalCapitalSigmaShouldLowercaseToFinalSigma(string input, string snake, string kebab, string pascal, string camel, string title)
+	{
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(kebab, input.ToKebabCase());
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(title, input.ToTitleCase());
+	}
+
+	[TestMethod]
+	[DataRow("λόγος")]
+	[DataRow("οδός σταθμός")]
+	public void GreekWithFinalSigmaShouldConvertTheSameFromItsMacroCaseSpelling(string input)
+	{
+		Assert.AreEqual(input.ToSnakeCase(), input.ToMacroCase().ToSnakeCase());
+	}
 }
