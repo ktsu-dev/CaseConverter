@@ -786,6 +786,35 @@ public class CaseConverterTests
 		Assert.AreEqual("get_a_value", "get_a_value".ToPascalCase().ToSnakeCase());
 	}
 
+	// A capital one-letter word before a two-letter word ending in "s" would join into "NMs", which
+	// reads back as a plural acronym, so the two-letter word is lowercased instead.
+	[TestMethod]
+	[DataRow("wait_n_ms", "WaitNms", "waitNms")]
+	[DataRow("timeout_in_n_ms", "TimeoutInNms", "timeoutInNms")]
+	[DataRow("check_x_is", "CheckXis", "checkXis")]
+	[DataRow("sort_by_x_as", "SortByXas", "sortByXas")]
+	[DataRow("plot_t_vs", "PlotTvs", "plotTvs")]
+	[DataRow("n_ms", "Nms", "nms")]
+	[DataRow("wait_n_ms_total", "WaitNmsTotal", "waitNmsTotal")]
+	public void AOneLetterWordBeforeAPluralLookingWordShouldConvertToOutputThatConvertsBackToItself(string input, string pascal, string camel)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(pascal, input.ToPascalCase().ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(camel, input.ToCamelCase().ToCamelCase());
+	}
+
+	[TestMethod]
+	public void APluralLookingWordShouldKeepItsCapitalWhenNoOneLetterWordPrecedesIt()
+	{
+		Assert.AreEqual("WaitMs", "wait_ms".ToPascalCase());
+		Assert.AreEqual("Wait2Ms", "wait_2_ms".ToPascalCase());
+		Assert.AreEqual("VectorXyMs", "vector_x_y_ms".ToPascalCase());
+		Assert.AreEqual("VectorXyMs", "vector_x_y_ms".ToPascalCase().ToPascalCase());
+		Assert.AreEqual("wait_nms", "wait_n_ms".ToPascalCase().ToSnakeCase());
+		Assert.AreEqual("WAIT_N_MS", "wait_n_ms".ToMacroCase());
+	}
+
 	// A caseless letter (Han, kana, Hangul) has no lowercase form, so it must not make a Latin
 	// acronym joined to it look "not all caps" and skip the acronym's normalization.
 	[TestMethod]

@@ -868,6 +868,12 @@ public static partial class CaseConverter
 	/// one-letter words is lost by design: <c>"vector_x_y".ToPascalCase().ToSnakeCase()</c> is
 	/// <c>"vector_xy"</c>.
 	/// </para>
+	/// <para>
+	/// For the same reason, a two-letter word ending in <c>"s"</c> that follows a one-letter word is
+	/// lowercased, so <c>"wait n ms"</c> becomes <c>"WaitNms"</c> rather than <c>"WaitNMs"</c>, which
+	/// would read back as the plural acronym <c>"NMs"</c>. That boundary is lost too:
+	/// <c>"wait_n_ms".ToPascalCase().ToSnakeCase()</c> is <c>"wait_nms"</c>.
+	/// </para>
 	/// </remarks>
 	public static string ToPascalCase(this string input)
 	{
@@ -888,15 +894,22 @@ public static partial class CaseConverter
 	}
 
 	/// <summary>
-	/// Lowercases each one-letter word that directly follows another one-letter word.
+	/// Lowercases each one-letter word that directly follows another one-letter word, and each
+	/// two-letter word ending in <c>"s"</c> that directly follows a capital one-letter word.
 	/// </summary>
 	/// <param name="input">The space-separated output of <see cref="ToTitleCase(string)"/>.</param>
-	/// <returns>A new string with the second and later letters of each run of one-letter words lowercased.</returns>
+	/// <returns>A new string with those words lowercased.</returns>
 	/// <remarks>
 	/// Joined without spaces, a run of capitalized one-letter words such as <c>"Vector X Y"</c> would
 	/// become <c>"VectorXY"</c>, which reads back as the all-caps word <c>"XY"</c> and is normalized to
 	/// <c>"VectorXy"</c> on the next conversion. Lowering the later letters here gives
 	/// <c>"VectorXy"</c> on the first pass, so PascalCase and camelCase output converts back to itself.
+	/// <para>
+	/// A capital one-letter word followed by a word such as <c>"Ms"</c> or <c>"Is"</c> has the same
+	/// problem: <c>"Wait N Ms"</c> would become <c>"WaitNMs"</c>, which reads back as the plural acronym
+	/// <c>"NMs"</c> and is normalized to <c>"WaitNms"</c>. Lowering the two-letter word gives
+	/// <c>"WaitNms"</c> on the first pass.
+	/// </para>
 	/// </remarks>
 	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "Lowercasing is the point: the letter continues the previous one-letter word.")]
 	private static string LowercaseOneLetterWordsAfterOneLetterWords(string input)
@@ -908,7 +921,11 @@ public static partial class CaseConverter
 		{
 			bool isOneLetter = IsOneLetterWord(words[i]);
 
-			if (isOneLetter && previousIsOneLetter)
+			// Only a one-letter word still capitalized at this point can join the next word's capital
+			// into an acronym run; one lowered above is followed by a capital that starts a new word.
+			bool previousIsCapitalOneLetter = previousIsOneLetter && char.IsUpper(words[i - 1], 0);
+
+			if ((isOneLetter && previousIsOneLetter) || (previousIsCapitalOneLetter && IsLetterThenPluralS(words[i])))
 			{
 				words[i] = ToLowerInvariantFull(words[i]);
 			}
@@ -917,6 +934,23 @@ public static partial class CaseConverter
 		}
 
 		return string.Join(" ", words);
+	}
+
+	/// <summary>
+	/// Determines whether <paramref name="word"/> is a single letter, optionally followed by combining
+	/// marks, and then a lowercase <c>"s"</c>, as in <c>"Ms"</c> or <c>"Is"</c>.
+	/// </summary>
+	/// <param name="word">The word to inspect.</param>
+	/// <returns><c>true</c> if the word is a letter followed by <c>"s"</c>; otherwise, <c>false</c>.</returns>
+	private static bool IsLetterThenPluralS(string word)
+	{
+		if (word.Length == 0 || !char.IsLetter(word, 0))
+		{
+			return false;
+		}
+
+		int i = SkipOverCombiningMarks(word, CodePointLength(word, 0));
+		return i == word.Length - 1 && word[i] == 's';
 	}
 
 	/// <summary>
