@@ -155,9 +155,8 @@ public static partial class CaseConverter
 #else
 				string letter = input[i..nextStart];
 #endif
-				letter = LowercaseIf(letter, lowercaseNextLetter || lowercaseSuffix);
+				builder.Append(CaseLetter(letter, lowercaseNextLetter || lowercaseSuffix, uppercaseSuffix));
 				lowercaseNextLetter = false;
-				builder.Append(uppercaseSuffix ? ToUpperInvariantFull(letter) : letter);
 			}
 			else if (IsCombiningMark(input, i))
 			{
@@ -167,7 +166,7 @@ public static partial class CaseConverter
 			{
 				int previousLetterStart = SkipBackOverCombiningMarks(input, previousStart);
 				uppercaseSuffix = char.IsUpper(input, previousLetterStart) && AreLettersFromIndexLowercase(input, nextStart);
-				lowercaseSuffix = char.IsLower(input, previousLetterStart) && AreLettersFromIndexUppercase(input, nextStart);
+				lowercaseSuffix = IsCapitalRunAfterLowercaseLetter(input, previousLetterStart, nextStart);
 				lowercaseNextLetter = !uppercaseSuffix && IsCapitalAfterApostropheInLowercaseContext(input, previousLetterStart, nextStart);
 			}
 			else
@@ -191,6 +190,31 @@ public static partial class CaseConverter
 
 		return builder.ToString();
 	}
+
+	/// <summary>
+	/// Returns <paramref name="letter"/> lowercased when <paramref name="lowercase"/> is set, then uppercased
+	/// when <paramref name="uppercase"/> is set.
+	/// </summary>
+	/// <param name="letter">The letter, as a string of one or two UTF-16 code units.</param>
+	/// <param name="lowercase">Whether to lowercase it.</param>
+	/// <param name="uppercase">Whether to uppercase it.</param>
+	/// <returns>The letter, case-mapped as asked.</returns>
+	private static string CaseLetter(string letter, bool lowercase, bool uppercase)
+	{
+		letter = LowercaseIf(letter, lowercase);
+		return uppercase ? ToUpperInvariantFull(letter) : letter;
+	}
+
+	/// <summary>
+	/// Determines whether the letter before an in-word apostrophe is lowercase and every letter in the run
+	/// after it is uppercase, as in <c>"o'NEIL"</c>.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="previousStart">The index of the letter before the apostrophe.</param>
+	/// <param name="nextStart">The index of the letter after the apostrophe.</param>
+	/// <returns><c>true</c> if the run after the apostrophe should be lowercased; otherwise, <c>false</c>.</returns>
+	private static bool IsCapitalRunAfterLowercaseLetter(string input, int previousStart, int nextStart) =>
+		char.IsLower(input, previousStart) && AreLettersFromIndexUppercase(input, nextStart);
 
 	/// <summary>
 	/// Returns <paramref name="letter"/> lowercased when <paramref name="lowercase"/> is set, otherwise unchanged.
