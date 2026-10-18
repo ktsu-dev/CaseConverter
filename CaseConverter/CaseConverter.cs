@@ -80,7 +80,8 @@ public static partial class CaseConverter
 	private static string ToUpperInvariantFull(string input) => input.ToUpperInvariant().Replace('\u0131', 'I');
 
 	/// <summary>
-	/// Converts <paramref name="input"/> to lowercase with the invariant mapping, and also maps <c>"İ"</c> (U+0130) to <c>"i"</c>.
+	/// Converts <paramref name="input"/> to lowercase with the invariant mapping, and also maps <c>"İ"</c> (U+0130)
+	/// to <c>"i"</c> and a word-final <c>"Σ"</c> to <c>"ς"</c>.
 	/// </summary>
 	/// <param name="input">The string to convert.</param>
 	/// <returns>The lowercase string.</returns>
@@ -88,8 +89,105 @@ public static partial class CaseConverter
 	/// The invariant mapping deliberately leaves the dotted <c>"İ"</c> alone, which would leave an uppercase
 	/// letter in snake_case, kebab-case and camelCase output. <c>"i"</c> is its Unicode simple lowercase mapping.
 	/// </remarks>
+	private static string ToLowerInvariantFull(string input) => ToLowerInvariantWithFinalSigma(input).Replace('\u0130', 'i');
+
+	/// <summary>
+	/// Converts <paramref name="input"/> to lowercase with the invariant mapping, except that a word-final
+	/// <c>"Σ"</c> (U+03A3) becomes the final sigma <c>"ς"</c> (U+03C2) rather than <c>"σ"</c> (U+03C3).
+	/// </summary>
+	/// <param name="input">The string to convert.</param>
+	/// <returns>The lowercase string.</returns>
+	/// <remarks>
+	/// This is the <c>Final_Sigma</c> condition of Unicode's full lowercase mapping, which the invariant
+	/// (simple) mapping does not apply: a <c>"Σ"</c> becomes <c>"ς"</c> when a cased letter comes before it and
+	/// none comes after it, skipping case-ignorable characters such as combining marks and apostrophes. So
+	/// <c>"ΛΟΓΟΣ"</c> becomes <c>"λογος"</c>, while a lone <c>"Σ"</c> and the first <c>"Σ"</c> of
+	/// <c>"ΣΑΣ"</c> still become <c>"σ"</c>.
+	/// </remarks>
 	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "Lowercasing is the point of this method.")]
-	private static string ToLowerInvariantFull(string input) => input.ToLowerInvariant().Replace('\u0130', 'i');
+	private static string ToLowerInvariantWithFinalSigma(string input)
+	{
+		string lowered = input.ToLowerInvariant();
+
+#if NETSTANDARD2_0
+		if (input.IndexOf('\u03A3') < 0)
+#else
+		if (!input.Contains('\u03A3', StringComparison.Ordinal))
+#endif
+		{
+			return lowered;
+		}
+
+		// The invariant mapping is char for char, so an index into the input is an index into the output.
+		char[] chars = lowered.ToCharArray();
+
+		for (int i = 0; i < input.Length; i++)
+		{
+			if (input[i] == '\u03A3' && IsCasedLetterBefore(input, i) && !IsCasedLetterAfter(input, i))
+			{
+				chars[i] = '\u03C2';
+			}
+		}
+
+		return new string(chars);
+	}
+
+	/// <summary>
+	/// Returns whether a cased letter comes before <paramref name="index"/>, skipping case-ignorable characters.
+	/// </summary>
+	/// <param name="input">The string to search.</param>
+	/// <param name="index">The index to search back from.</param>
+	/// <returns><see langword="true"/> if the nearest character before <paramref name="index"/> that is not case-ignorable is a cased letter.</returns>
+	private static bool IsCasedLetterBefore(string input, int index)
+	{
+		for (int i = index - 1; i >= 0; i--)
+		{
+			if (!IsCaseIgnorable(input[i]))
+			{
+				return IsCasedLetter(input[i]);
+			}
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Returns whether a cased letter comes after <paramref name="index"/>, skipping case-ignorable characters.
+	/// </summary>
+	/// <param name="input">The string to search.</param>
+	/// <param name="index">The index to search forward from.</param>
+	/// <returns><see langword="true"/> if the nearest character after <paramref name="index"/> that is not case-ignorable is a cased letter.</returns>
+	private static bool IsCasedLetterAfter(string input, int index)
+	{
+		for (int i = index + 1; i < input.Length; i++)
+		{
+			if (!IsCaseIgnorable(input[i]))
+			{
+				return IsCasedLetter(input[i]);
+			}
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Returns whether <paramref name="c"/> is an uppercase, lowercase or titlecase letter.
+	/// </summary>
+	/// <param name="c">The character to test.</param>
+	/// <returns><see langword="true"/> if <paramref name="c"/> is a cased letter.</returns>
+	private static bool IsCasedLetter(char c) => char.GetUnicodeCategory(c) is
+		UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter or UnicodeCategory.TitlecaseLetter;
+
+	/// <summary>
+	/// Returns whether <paramref name="c"/> is case-ignorable in the Unicode sense: a mark, format character,
+	/// modifier, or one of the word-internal punctuation marks such as an apostrophe.
+	/// </summary>
+	/// <param name="c">The character to test.</param>
+	/// <returns><see langword="true"/> if <paramref name="c"/> is case-ignorable.</returns>
+	private static bool IsCaseIgnorable(char c) =>
+		c is '\'' or '\u2019' or '.' or ':' or '\u00B7' ||
+		char.GetUnicodeCategory(c) is UnicodeCategory.NonSpacingMark or UnicodeCategory.EnclosingMark
+			or UnicodeCategory.Format or UnicodeCategory.ModifierLetter or UnicodeCategory.ModifierSymbol;
 
 	/// <summary>
 	/// Replaces every code point that is not a Unicode letter, combining mark or decimal digit with a
@@ -610,7 +708,7 @@ public static partial class CaseConverter
 #endif
 			// An "İ" is left for TitleCaseKeepingTypographicApostrophes to map, so one that starts the
 			// word keeps its dot: "İZMİR" becomes "İzmir", the same as "İzmir" does.
-			builder.Append(IsAllCaps(StemBeforeApostrophe(word)) ? word.ToLowerInvariant() : word);
+			builder.Append(IsAllCaps(StemBeforeApostrophe(word)) ? ToLowerInvariantWithFinalSigma(word) : word);
 		}
 
 		return builder.ToString();
