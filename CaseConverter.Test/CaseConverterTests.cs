@@ -490,6 +490,11 @@ public class CaseConverterTests
 	[DataRow("O'Neil", "Oneil", "oneil", "oneil", "oneil", "ONEIL")]
 	[DataRow("O\u2019Neil", "Oneil", "oneil", "oneil", "oneil", "ONEIL")]
 	[DataRow("O'NEIL", "Oneil", "oneil", "oneil", "oneil", "ONEIL")]
+	[DataRow("o'NEIL", "Oneil", "oneil", "oneil", "oneil", "ONEIL")]
+	[DataRow("o\u2019NEIL", "Oneil", "oneil", "oneil", "oneil", "ONEIL")]
+	[DataRow("we'RE", "Were", "were", "were", "were", "WERE")]
+	[DataRow("d'ARTAGNAN", "Dartagnan", "dartagnan", "dartagnan", "dartagnan", "DARTAGNAN")]
+	[DataRow("l'API", "Lapi", "lapi", "lapi", "lapi", "LAPI")]
 	[DataRow("D'Angelo", "Dangelo", "dangelo", "dangelo", "dangelo", "DANGELO")]
 	[DataRow("d'angelo", "Dangelo", "dangelo", "dangelo", "dangelo", "DANGELO")]
 	[DataRow("Don'T stop", "DontStop", "dontStop", "dont_stop", "dont-stop", "DONT_STOP")]
@@ -554,6 +559,8 @@ public class CaseConverterTests
 	[DataRow("O'Neil", "o'neil")]
 	[DataRow("D'Angelo", "d'angelo")]
 	[DataRow("Don'T", "don't")]
+	[DataRow("o'NEIL", "o'neil")]
+	[DataRow("l'API", "l'api")]
 	public void ACapitalisedApostropheNameShouldConvertLikeItsLowercaseSpelling(string input, string lowercase)
 	{
 		Assert.AreEqual(lowercase.ToSnakeCase(), input.ToSnakeCase());
