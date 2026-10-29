@@ -854,9 +854,67 @@ public static partial class CaseConverter
 		// otherwise the same word converts two different ways depending on its neighbours.
 		output = LowercaseAllCapsWords(output);
 		output = TitleCaseKeepingTypographicApostrophes(output);
+		output = TitleCaseWordStartsWithNoSimpleTitlecase(output);
 
 		return LowercaseLettersAfterDigits(output);
 	}
+
+	/// <summary>
+	/// Replaces each word-initial letter that has no single-character title case with its full
+	/// Unicode title case, such as <c>"ﬁ"</c> with <c>"Fi"</c>.
+	/// </summary>
+	/// <param name="input">The output of <see cref="TitleCaseKeepingTypographicApostrophes"/>.</param>
+	/// <returns>A new string with those word-initial letters title-cased.</returns>
+	/// <remarks>
+	/// <see cref="TextInfo.ToTitleCase(string)"/> uses the simple case mapping, which leaves the Latin
+	/// ligatures U+FB00 to U+FB06 and <c>"ŉ"</c> (U+0149) lowercase. A word starting with one stayed
+	/// lowercase, so PascalCase and camelCase lost the word boundary before it: <c>"the ﬁrst"</c> and
+	/// <c>"theﬁrst"</c> both became <c>"Theﬁrst"</c>. The full mappings from SpecialCasing.txt are
+	/// applied here instead. A ligature that does not start a word is left as it is.
+	/// </remarks>
+	private static string TitleCaseWordStartsWithNoSimpleTitlecase(string input)
+	{
+		StringBuilder? builder = null;
+		int previousStart = -1;
+
+		for (int i = 0; i < input.Length; i++)
+		{
+			string? titlecase = FullTitlecaseWithNoSimpleTitlecase(input[i]);
+			bool startsWord = previousStart < 0 || !(IsWordCharacter(input, previousStart) || char.IsDigit(input, previousStart));
+
+			if (titlecase is not null && startsWord)
+			{
+				builder ??= new StringBuilder(input, 0, i, input.Length + 2);
+				builder.Append(titlecase);
+			}
+			else
+			{
+				builder?.Append(input[i]);
+			}
+
+			previousStart = i;
+		}
+
+		return builder?.ToString() ?? input;
+	}
+
+	/// <summary>
+	/// Returns the full title case of a letter whose simple title case is the letter itself, or
+	/// <c>null</c> for any other character.
+	/// </summary>
+	/// <param name="letter">The character to map.</param>
+	/// <returns>The title case from SpecialCasing.txt, or <c>null</c>.</returns>
+	private static string? FullTitlecaseWithNoSimpleTitlecase(char letter) => letter switch
+	{
+		'\u0149' => "\u02BCN",
+		'\uFB00' => "Ff",
+		'\uFB01' => "Fi",
+		'\uFB02' => "Fl",
+		'\uFB03' => "Ffi",
+		'\uFB04' => "Ffl",
+		'\uFB05' or '\uFB06' => "St",
+		_ => null,
+	};
 
 	/// <summary>
 	/// Lowercases each letter that directly follows a digit.
