@@ -973,6 +973,6 @@ public class CaseConverterTests
 		string pascal = input.ToPascalCase();
 		Assert.AreEqual(title, title.ToTitleCase());
 		Assert.AreEqual(pascal, pascal.ToPascalCase());
-		Assert.AreEqual(input.ToSnakeCase().Split('_').Length, pascal.ToSnakeCase().Split('_').Length);
+		Assert.HasCount(input.ToSnakeCase().Split('_').Length, pascal.ToSnakeCase().Split('_'));
 	}
 }

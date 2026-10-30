@@ -553,6 +553,16 @@ public static partial class CaseConverter
 		input[index] == 'ʼ' && index + 1 < input.Length && char.IsUpper(input, index + 1);
 
 	/// <summary>
+	/// Determines whether a word starts at <paramref name="index"/> with a U+02BC followed by a capital.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="previousStart">The index of the preceding code point, or -1 at the start.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <returns><c>true</c> if <see cref="IsWordInitialApostrophe"/> holds and no word character precedes it; otherwise, <c>false</c>.</returns>
+	private static bool StartsWordWithApostrophe(string input, int previousStart, int index) =>
+		IsWordInitialApostrophe(input, index) && (previousStart < 0 || !IsWordCharacter(input, previousStart));
+
+	/// <summary>
 	/// Determines whether a run of at least two capitals starts at <paramref name="index"/> and ends its
 	/// word, at the end of the string or before a non-letter.
 	/// </summary>
@@ -1034,7 +1044,7 @@ public static partial class CaseConverter
 				characters[i] = input[i] == '\u0130' ? 'I' : 'i';
 				substitutions.Add(i);
 			}
-			else if (IsWordInitialApostrophe(input, i) && (previousStart < 0 || !IsWordCharacter(input, previousStart)))
+			else if (StartsWordWithApostrophe(input, previousStart, i))
 			{
 				substitutions.Add(nextStart);
 			}
