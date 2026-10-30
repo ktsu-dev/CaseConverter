@@ -922,4 +922,37 @@ public class CaseConverterTests
 	{
 		Assert.AreEqual(input.ToSnakeCase(), input.ToMacroCase().ToSnakeCase());
 	}
+
+	// TextInfo.ToTitleCase leaves a word-initial ligature lowercase, so PascalCase and camelCase lost the
+	// boundary before it: "the ﬁrst" and "theﬁrst" both became "Theﬁrst".
+	[TestMethod]
+	[DataRow("the \uFB01rst", "The First", "TheFirst", "theFirst")]
+	[DataRow("my \uFB01le", "My File", "MyFile", "myFile")]
+	[DataRow("new \uFB02ag", "New Flag", "NewFlag", "newFlag")]
+	[DataRow("the \uFB03x", "The Ffix", "TheFfix", "theFfix")]
+	[DataRow("an \uFB06ar", "An Star", "AnStar", "anStar")]
+	[DataRow("\uFB01le name", "File Name", "FileName", "fileName")]
+	[DataRow("the o\uFB03ce", "The O\uFB03ce", "TheO\uFB03ce", "theO\uFB03ce")]
+	public void AWordStartingWithALigatureShouldBeTitleCased(string input, string title, string pascal, string camel)
+	{
+		Assert.AreEqual(title, input.ToTitleCase());
+		Assert.AreEqual(title, title.ToTitleCase());
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(input.ToSnakeCase().Split('_').Length, pascal.ToSnakeCase().Split('_').Length);
+	}
+
+	[TestMethod]
+	public void AWordStartingWithALigatureShouldKeepItsBoundaryInCamelCase()
+	{
+		Assert.AreNotEqual("my\uFB01le".ToCamelCase(), "my \uFB01le".ToCamelCase());
+		Assert.AreEqual("the_first", "the \uFB01rst".ToPascalCase().ToSnakeCase());
+	}
+
+	[TestMethod]
+	public void AWordStartingWithNApostropheShouldBeTitleCased()
+	{
+		Assert.AreEqual("Die \u02BCN Boek", "die \u0149 boek".ToTitleCase());
+		Assert.AreEqual(3, "die \u0149 boek".ToPascalCase().ToSnakeCase().Split('_').Length);
+	}
 }
