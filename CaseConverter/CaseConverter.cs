@@ -266,7 +266,10 @@ public static partial class CaseConverter
 				// A capital that is already being lowercased (the "ARTAGNAN" of "d'ARTAGNAN's") does not
 				// uppercase the suffix after it, or the suffix would split off as a word of its own.
 				uppercaseSuffix = !lowercaseSuffix && char.IsUpper(input, previousLetterStart) && AreLettersFromIndexLowercase(input, nextStart);
-				lowercaseSuffix = IsCapitalRunAfterLowercaseLetter(input, previousLetterStart, nextStart);
+				// A run that is already being lowercased (the "NEIL" of "o'NEIL'S") counts as lowercase, so an
+				// all-caps suffix after it is lowercased too rather than splitting off as a word of its own.
+				lowercaseSuffix = (lowercaseSuffix && AreLettersFromIndexUppercase(input, nextStart))
+					|| IsCapitalRunAfterLowercaseLetter(input, previousLetterStart, nextStart);
 				lowercaseNextLetter = !uppercaseSuffix && IsCapitalAfterApostropheInLowercaseContext(input, previousLetterStart, nextStart);
 			}
 			else
