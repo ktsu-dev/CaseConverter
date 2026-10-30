@@ -263,7 +263,9 @@ public static partial class CaseConverter
 			else if (IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
 				int previousLetterStart = SkipBackOverCombiningMarks(input, previousStart);
-				uppercaseSuffix = char.IsUpper(input, previousLetterStart) && AreLettersFromIndexLowercase(input, nextStart);
+				// A capital that is already being lowercased (the "ARTAGNAN" of "d'ARTAGNAN's") does not
+				// uppercase the suffix after it, or the suffix would split off as a word of its own.
+				uppercaseSuffix = !lowercaseSuffix && char.IsUpper(input, previousLetterStart) && AreLettersFromIndexLowercase(input, nextStart);
 				lowercaseSuffix = IsCapitalRunAfterLowercaseLetter(input, previousLetterStart, nextStart);
 				lowercaseNextLetter = !uppercaseSuffix && IsCapitalAfterApostropheInLowercaseContext(input, previousLetterStart, nextStart);
 			}
