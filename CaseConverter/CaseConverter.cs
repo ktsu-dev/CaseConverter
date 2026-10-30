@@ -483,6 +483,19 @@ public static partial class CaseConverter
 		bool previousIsUpper = char.IsUpper(input, previousStart);
 		bool currentIsUpper = char.IsUpper(input, start);
 
+		// The full title case of "ŉ" is "ʼN", whose U+02BC is a modifier letter. Before a capital it
+		// opens that word, so "DieʼNBoek" breaks before the "ʼ" and keeps "ʼN" together, instead of
+		// treating it as a caseless letter that joins the word before it.
+		if (IsWordInitialApostrophe(input, previousStart))
+		{
+			return false;
+		}
+
+		if (IsWordInitialApostrophe(input, start))
+		{
+			return previousIsLetter || char.IsDigit(input, previousStart);
+		}
+
 		// A lowercase letter with no uppercase form, such as "ß" or "ﬁ", survives uppercasing, so it
 		// takes the case of the nearest letter that has one: "STRAßE" is a single all-caps word. The
 		// combining marks of a decomposed capital ("E" + U+0301) are skipped first, so "XMLÉtude"
@@ -528,6 +541,16 @@ public static partial class CaseConverter
 	/// <returns><c>true</c> if the code point is a letter that is neither uppercase, lowercase nor titlecase; otherwise, <c>false</c>.</returns>
 	private static bool IsCaselessLetter(string input, int index) =>
 		CharUnicodeInfo.GetUnicodeCategory(input, index) is UnicodeCategory.OtherLetter or UnicodeCategory.ModifierLetter;
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> is a U+02BC MODIFIER LETTER
+	/// APOSTROPHE followed by a capital, as in <c>"ʼN"</c>, the full title case of <c>"ŉ"</c>.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <returns><c>true</c> if the apostrophe starts a capitalised word; otherwise, <c>false</c>.</returns>
+	private static bool IsWordInitialApostrophe(string input, int index) =>
+		input[index] == 'ʼ' && index + 1 < input.Length && char.IsUpper(input, index + 1);
 
 	/// <summary>
 	/// Determines whether a run of at least two capitals starts at <paramref name="index"/> and ends its
@@ -775,7 +798,20 @@ public static partial class CaseConverter
 #endif
 			// An "İ" is left for TitleCaseKeepingTypographicApostrophes to map, so one that starts the
 			// word keeps its dot: "İZMİR" becomes "İzmir", the same as "İzmir" does.
-			builder.Append(IsAllCaps(StemBeforeApostrophe(word)) ? ToLowerInvariantWithFinalSigma(word) : word);
+			if (!IsAllCaps(StemBeforeApostrophe(word)))
+			{
+				builder.Append(word);
+			}
+			else if (IsWordInitialApostrophe(word, 0))
+			{
+				// "ʼN" is the title case of "ŉ", not an acronym, so its capital is kept.
+				string lowered = ToLowerInvariantWithFinalSigma(word);
+				builder.Append(word, 0, 2).Append(lowered, 2, lowered.Length - 2);
+			}
+			else
+			{
+				builder.Append(ToLowerInvariantWithFinalSigma(word));
+			}
 		}
 
 		return builder.ToString();
@@ -972,6 +1008,11 @@ public static partial class CaseConverter
 	/// <c>"İ"</c> is restored (it is already its own title case) and <c>"ı"</c> becomes <c>"I"</c>; an
 	/// <c>"i"</c> means it does not, so <c>"İ"</c> becomes <c>"i"</c> and <c>"ı"</c> is restored.
 	/// </para>
+	/// <para>
+	/// <see cref="TextInfo.ToTitleCase(string)"/> takes the U+02BC of <c>"ʼN"</c>, the full title case of
+	/// <c>"ŉ"</c>, for the word's first letter and lowercases the <c>"N"</c>. The capital after a
+	/// word-initial U+02BC is restored afterwards, so title-casing <c>"ʼN"</c> again leaves it unchanged.
+	/// </para>
 	/// </remarks>
 	private static string TitleCaseKeepingTypographicApostrophes(string input)
 	{
@@ -992,6 +1033,10 @@ public static partial class CaseConverter
 			{
 				characters[i] = input[i] == '\u0130' ? 'I' : 'i';
 				substitutions.Add(i);
+			}
+			else if (IsWordInitialApostrophe(input, i) && (previousStart < 0 || !IsWordCharacter(input, previousStart)))
+			{
+				substitutions.Add(nextStart);
 			}
 
 			previousStart = i;

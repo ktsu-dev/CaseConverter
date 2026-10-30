@@ -958,6 +958,21 @@ public class CaseConverterTests
 	public void AWordStartingWithNApostropheShouldBeTitleCased()
 	{
 		Assert.AreEqual("Die \u02BCN Boek", "die \u0149 boek".ToTitleCase());
-		Assert.AreEqual(3, "die \u0149 boek".ToPascalCase().ToSnakeCase().Split('_').Length);
+		Assert.AreEqual("die_\u02BCn_boek", "die \u0149 boek".ToPascalCase().ToSnakeCase());
+	}
+
+	// The "\u02BC" in "\u02BCN" is a modifier letter, which the splitter took for a caseless letter: it broke
+	// between "\u02BC" and "N", and joined "\u02BC" to the word before it.
+	[TestMethod]
+	[DataRow("die \u0149 boek")]
+	[DataRow("\u0149 boek")]
+	[DataRow("\u0149id")]
+	public void AWordStartingWithNApostropheShouldConvertToItself(string input)
+	{
+		string title = input.ToTitleCase();
+		string pascal = input.ToPascalCase();
+		Assert.AreEqual(title, title.ToTitleCase());
+		Assert.AreEqual(pascal, pascal.ToPascalCase());
+		Assert.AreEqual(input.ToSnakeCase().Split('_').Length, pascal.ToSnakeCase().Split('_').Length);
 	}
 }
