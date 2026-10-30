@@ -869,19 +869,22 @@ public static partial class CaseConverter
 	/// <returns>A new string with those word-initial letters title-cased.</returns>
 	/// <remarks>
 	/// <see cref="TextInfo.ToTitleCase(string)"/> uses the simple case mapping, which leaves the Latin
-	/// ligatures U+FB00 to U+FB06 and <c>"ŉ"</c> (U+0149) lowercase. A word starting with one stayed
-	/// lowercase, so PascalCase and camelCase lost the word boundary before it: <c>"the ﬁrst"</c> and
-	/// <c>"theﬁrst"</c> both became <c>"Theﬁrst"</c>. The full mappings from SpecialCasing.txt are
-	/// applied here instead. A ligature that does not start a word is left as it is.
+	/// ligatures U+FB00 to U+FB06, the Armenian ligatures <c>"և"</c> (U+0587) and U+FB13 to U+FB17, and
+	/// <c>"ŉ"</c> (U+0149) lowercase. A word starting with one stayed lowercase, so PascalCase and
+	/// camelCase lost the word boundary before it: <c>"the ﬁrst"</c> and <c>"theﬁrst"</c> both became
+	/// <c>"Theﬁrst"</c>. The full mappings from SpecialCasing.txt are applied here instead. A ligature
+	/// that does not start a word is left as it is; the input is stepped by code point, so a letter
+	/// outside the BMP still counts as the word character before it.
 	/// </remarks>
 	private static string TitleCaseWordStartsWithNoSimpleTitlecase(string input)
 	{
 		StringBuilder? builder = null;
 		int previousStart = -1;
 
-		for (int i = 0; i < input.Length; i++)
+		for (int i = 0; i < input.Length;)
 		{
-			string? titlecase = FullTitlecaseWithNoSimpleTitlecase(input[i]);
+			int length = CodePointLength(input, i);
+			string? titlecase = length == 1 ? FullTitlecaseWithNoSimpleTitlecase(input[i]) : null;
 			bool startsWord = previousStart < 0 || !(IsWordCharacter(input, previousStart) || char.IsDigit(input, previousStart));
 
 			if (titlecase is not null && startsWord)
@@ -891,10 +894,11 @@ public static partial class CaseConverter
 			}
 			else
 			{
-				builder?.Append(input[i]);
+				builder?.Append(input, i, length);
 			}
 
 			previousStart = i;
+			i += length;
 		}
 
 		return builder?.ToString() ?? input;
@@ -915,6 +919,12 @@ public static partial class CaseConverter
 		'\uFB03' => "Ffi",
 		'\uFB04' => "Ffl",
 		'\uFB05' or '\uFB06' => "St",
+		'\u0587' => "\u0535\u0582",
+		'\uFB13' => "\u0544\u0576",
+		'\uFB14' => "\u0544\u0565",
+		'\uFB15' => "\u0544\u056B",
+		'\uFB16' => "\u054E\u0576",
+		'\uFB17' => "\u0544\u056D",
 		_ => null,
 	};
 

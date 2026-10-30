@@ -954,6 +954,43 @@ public class CaseConverterTests
 		Assert.AreEqual("the_first", "the \uFB01rst".ToPascalCase().ToSnakeCase());
 	}
 
+	// "և" is the Armenian word for "and". Like the Latin ligatures it has no simple title case, so it
+	// lost its word boundary in PascalCase and camelCase, unlike the two-letter spelling "եւ".
+	[TestMethod]
+	[DataRow("\u0535\u057D \u0587 \u0564\u0578\u0582", "\u0535\u057D \u0535\u0582 \u0534\u0578\u0582")]
+	[DataRow("\uFB13 \u0561", "\u0544\u0576 \u0531")]
+	[DataRow("\u0561 \uFB14", "\u0531 \u0544\u0565")]
+	[DataRow("\u0561 \uFB15", "\u0531 \u0544\u056B")]
+	[DataRow("\u0561 \uFB16", "\u0531 \u054E\u0576")]
+	[DataRow("\u0561 \uFB17", "\u0531 \u0544\u056D")]
+	public void AWordStartingWithAnArmenianLigatureShouldBeTitleCased(string input, string title)
+	{
+		Assert.AreEqual(title, input.ToTitleCase());
+		string pascal = input.ToPascalCase();
+		Assert.AreEqual(pascal, pascal.ToPascalCase());
+		Assert.AreEqual(title.ToSnakeCase().Split('_').Length, pascal.ToSnakeCase().Split('_').Length);
+	}
+
+	[TestMethod]
+	public void ArmenianAndShouldConvertLikeItsTwoLetterSpelling()
+	{
+		const string ligature = "\u0535\u057D \u0587 \u0564\u0578\u0582";
+		const string twoLetters = "\u0535\u057D \u0565\u0582 \u0564\u0578\u0582";
+		Assert.AreEqual(twoLetters.ToPascalCase(), ligature.ToPascalCase());
+		Assert.AreEqual(twoLetters.ToCamelCase(), ligature.ToCamelCase());
+		Assert.AreEqual("\u0565\u057D_\u0565\u0582_\u0564\u0578\u0582", ligature.ToPascalCase().ToSnakeCase());
+	}
+
+	// The scan once stepped by UTF-16 code unit, so after a letter outside the BMP it looked at the low
+	// surrogate, which is not a letter, and took a ligature inside the word for the start of one.
+	[TestMethod]
+	public void ALigatureAfterALetterOutsideTheBmpShouldNotStartAWord()
+	{
+		const string input = "Hello \U0001D400\uFB01le";
+		Assert.AreEqual(input, input.ToTitleCase());
+		Assert.AreEqual("hello_\U0001D400\uFB01le", input.ToPascalCase().ToSnakeCase());
+	}
+
 	[TestMethod]
 	public void AWordStartingWithNApostropheShouldBeTitleCased()
 	{
