@@ -606,6 +606,39 @@ public class CaseConverterTests
 		Assert.AreEqual("groß_foo", "großFoo".ToSnakeCase());
 	}
 
+	// A capital followed only by such letters, as in "Oﬀ", "Xß" or "GROß", is still an uppercase run,
+	// so a capitalised word after it starts a new word (#140). Otherwise PascalCase merged the next
+	// word into it when converted again: "OﬀSwitch" became "Oﬀswitch".
+
+	[TestMethod]
+	[DataRow("oﬀ switch")]
+	[DataRow("the oﬀ state")]
+	[DataRow("aßBar")]
+	[DataRow("GROßBar")]
+	public void ToPascalCaseShouldBeIdempotentAfterACapitalFollowedByLettersWithNoUppercaseForm(string input)
+	{
+		string once = input.ToPascalCase();
+		Assert.AreEqual(once, once.ToPascalCase());
+		Assert.AreEqual(input.ToCamelCase(), input.ToCamelCase().ToCamelCase());
+	}
+
+	[TestMethod]
+	public void ACapitalisedWordAfterAnUppercaseRunEndingInSharpSOrALigatureShouldSplit()
+	{
+		Assert.AreEqual("OﬀSwitch", "oﬀ switch".ToPascalCase());
+		Assert.AreEqual("oﬀ_switch", "oﬀ switch".ToPascalCase().ToSnakeCase());
+		Assert.AreEqual("the_oﬀ_state", "the oﬀ state".ToPascalCase().ToSnakeCase());
+		Assert.AreEqual("AßBar", "aßBar".ToPascalCase());
+		Assert.AreEqual("groß_bar", "GROßBar".ToSnakeCase());
+		Assert.AreEqual("GroßBar", "GROßBar".ToPascalCase());
+	}
+
+	[TestMethod]
+	public void ALigatureWithNoCasedLetterBeforeItShouldNotSplitFromTheCapitalAfterIt()
+	{
+		Assert.AreEqual("ﬁdoc", "ﬁDoc".ToSnakeCase());
+	}
+
 	[TestMethod]
 	public void IsAllCapsShouldIgnoreLowercaseLettersWithNoUppercaseForm()
 	{
