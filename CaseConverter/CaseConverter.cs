@@ -21,14 +21,61 @@ public static partial class CaseConverter
 	private static int CodePointLength(string input, int index) => char.IsSurrogatePair(input, index) ? 2 : 1;
 
 	/// <summary>
-	/// Determines whether the code point at <paramref name="index"/> is a combining mark, such as a
-	/// Devanagari vowel sign or the U+0301 accent of a decomposed <c>"é"</c>.
+	/// Determines whether the code point at <paramref name="index"/> is part of the letter before it: a
+	/// combining mark, such as a Devanagari vowel sign or the U+0301 accent of a decomposed <c>"é"</c>, or a
+	/// format character inside a word.
 	/// </summary>
 	/// <param name="input">The string to inspect.</param>
 	/// <param name="index">The index of the first code unit of the code point.</param>
-	/// <returns><c>true</c> if the code point is a non-spacing, spacing combining or enclosing mark; otherwise, <c>false</c>.</returns>
+	/// <returns>
+	/// <c>true</c> if the code point is a non-spacing, spacing combining or enclosing mark, or a format
+	/// character inside a word; otherwise, <c>false</c>.
+	/// </returns>
+	/// <remarks>See <see cref="IsFormatCharacterWithinWord"/> for which format characters count.</remarks>
 	private static bool IsCombiningMark(string input, int index) =>
+		IsMark(input, index) || IsFormatCharacterWithinWord(input, index);
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> is a non-spacing, spacing combining or
+	/// enclosing mark.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <returns><c>true</c> if the code point is a mark; otherwise, <c>false</c>.</returns>
+	private static bool IsMark(string input, int index) =>
 		CharUnicodeInfo.GetUnicodeCategory(input, index) is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or UnicodeCategory.EnclosingMark;
+
+	/// <summary>
+	/// Determines whether the character at <paramref name="index"/> is a format character with a letter on
+	/// each side, such as the zero-width non-joiner of Persian <c>"میخواهم"</c>, the zero-width joiner of a
+	/// Devanagari conjunct or a soft hyphen.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the character to test.</param>
+	/// <returns><c>true</c> if the character belongs to the word around it; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// These characters change how a word joins or hyphenates, not where it ends, so turning one into a
+	/// separator split a word where the reader sees none. The letter before may carry combining marks, as the
+	/// virama of <c>"क्‍ष"</c> does. The zero-width space (U+200B) is left out because it marks a word break.
+	/// Only a single UTF-16 code unit counts, so <see cref="TitleCaseKeepingTypographicApostrophes"/> can swap
+	/// it out and back at the same index.
+	/// </remarks>
+	private static bool IsFormatCharacterWithinWord(string input, int index)
+	{
+		if (index <= 0 || index + 1 >= input.Length || input[index] == '\u200B' || char.IsSurrogate(input[index])
+			|| char.GetUnicodeCategory(input[index]) != UnicodeCategory.Format)
+		{
+			return false;
+		}
+
+		int previousStart = index - (index >= 2 && char.IsSurrogatePair(input, index - 2) ? 2 : 1);
+		while (previousStart > 0 && IsMark(input, previousStart))
+		{
+			previousStart -= previousStart >= 2 && char.IsSurrogatePair(input, previousStart - 2) ? 2 : 1;
+		}
+
+		return char.IsLetter(input, previousStart) && char.IsLetter(input, index + 1);
+	}
 
 	/// <summary>
 	/// Returns the index of the code point that the combining marks ending at <paramref name="index"/>
@@ -955,8 +1002,8 @@ public static partial class CaseConverter
 	}
 
 	/// <summary>
-	/// Applies <see cref="TextInfo.ToTitleCase(string)"/>, treating an in-word U+2019 the same as an ASCII
-	/// apostrophe, and case-mapping <c>"İ"</c> and <c>"ı"</c>.
+	/// Applies <see cref="TextInfo.ToTitleCase(string)"/>, treating an in-word U+2019 or format character the
+	/// same as an ASCII apostrophe, and case-mapping <c>"İ"</c> and <c>"ı"</c>.
 	/// </summary>
 	/// <param name="input">The string to convert.</param>
 	/// <returns>A new string in Title Case.</returns>
@@ -964,7 +1011,9 @@ public static partial class CaseConverter
 	/// <see cref="TextInfo.ToTitleCase(string)"/> keeps the letter after an ASCII <c>'</c> lowercase, but
 	/// treats U+2019 as a word separator, so <c>"don’t"</c> would become <c>"Don’T"</c>. Each in-word
 	/// U+2019 is swapped for <c>'</c> before the call and restored at the same index afterwards, which is
-	/// safe because <see cref="TextInfo.ToTitleCase(string)"/> does not change the string's length.
+	/// safe because <see cref="TextInfo.ToTitleCase(string)"/> does not change the string's length. A format
+	/// character inside a word, such as a soft hyphen, is swapped the same way, since it too is read as a
+	/// separator: <c>"co\u00ADoperate"</c> would become <c>"Co\u00ADOperate"</c>.
 	/// <para>
 	/// The invariant <see cref="TextInfo"/> leaves <c>"İ"</c> (U+0130) and <c>"ı"</c> (U+0131) unmapped, so
 	/// a word could start with <c>"ı"</c> or keep an <c>"İ"</c> mid-word. Each is swapped for <c>"I"</c> or
@@ -983,7 +1032,7 @@ public static partial class CaseConverter
 		{
 			int nextStart = i + CodePointLength(input, i);
 
-			if (input[i] == '’' && IsApostropheWithinWord(input, previousStart, i, nextStart))
+			if ((input[i] == '’' && IsApostropheWithinWord(input, previousStart, i, nextStart)) || IsFormatCharacterWithinWord(input, i))
 			{
 				characters[i] = '\'';
 				substitutions.Add(i);
