@@ -542,6 +542,41 @@ public class CaseConverterTests
 		Assert.AreEqual(composed.ToTitleCase(), Compose(decomposed.ToTitleCase()));
 	}
 
+	// A capital after an apostrophe looked at the code unit after it to decide whether to lowercase it,
+	// which in NFD text is the capital's own accent, so "L'E\u0301te\u0301" split into "l_été" where NFC
+	// "L'Été" gave "lété". The letter-run checks also ended at the first combining mark.
+	[TestMethod]
+	[DataRow("L'E\u0301te\u0301", "L'\u00c9t\u00e9")]
+	[DataRow("D'A\u0301ngelo", "D'\u00c1ngelo")]
+	[DataRow("L'E\u0301conomie", "L'\u00c9conomie")]
+	[DataRow("s'SE\u0301e\u0301", "s'S\u00c9\u00e9")]
+	public void ACapitalAfterAnApostropheShouldConvertLikeItsComposedSpellingWhenDecomposed(string decomposed, string composed)
+	{
+		// The test host runs with invariant globalization, where string.Normalize is unavailable, so the
+		// composed accents are spelled out and swapped back in to compare.
+		static string Compose(string text) => text
+			.Replace("e\u0301", "\u00e9", StringComparison.Ordinal)
+			.Replace("E\u0301", "\u00c9", StringComparison.Ordinal)
+			.Replace("a\u0301", "\u00e1", StringComparison.Ordinal)
+			.Replace("A\u0301", "\u00c1", StringComparison.Ordinal);
+
+		Assert.AreEqual(composed.ToPascalCase(), Compose(decomposed.ToPascalCase()));
+		Assert.AreEqual(composed.ToCamelCase(), Compose(decomposed.ToCamelCase()));
+		Assert.AreEqual(composed.ToSnakeCase(), Compose(decomposed.ToSnakeCase()));
+		Assert.AreEqual(composed.ToKebabCase(), Compose(decomposed.ToKebabCase()));
+		Assert.AreEqual(composed.ToMacroCase(), Compose(decomposed.ToMacroCase()));
+		Assert.AreEqual(composed.ToTitleCase(), Compose(decomposed.ToTitleCase()));
+	}
+
+	[TestMethod]
+	[DataRow("L'E\u0301te\u0301", "le\u0301te\u0301")]
+	[DataRow("D'A\u0301ngelo", "da\u0301ngelo")]
+	[DataRow("L'E\u0301conomie", "le\u0301conomie")]
+	public void ADecomposedCapitalAfterAnApostropheShouldNotSplitTheWord(string input, string snake)
+	{
+		Assert.AreEqual(snake, input.ToSnakeCase());
+	}
+
 	[TestMethod]
 	[DataRow("cafe\u0301's menu", "cafe\u0301s_menu")]
 	[DataRow("cafe\u0301\u2019s menu", "cafe\u0301s_menu")]

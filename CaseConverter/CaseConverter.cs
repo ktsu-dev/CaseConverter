@@ -344,7 +344,8 @@ public static partial class CaseConverter
 			return false;
 		}
 
-		int afterNextStart = nextStart + CodePointLength(input, nextStart);
+		// A decomposed capital ("E" + U+0301) is looked past to the letter after its accent.
+		int afterNextStart = SkipOverCombiningMarks(input, nextStart + CodePointLength(input, nextStart));
 		return afterNextStart < input.Length && char.IsLetter(input, afterNextStart)
 			? char.IsLower(input, afterNextStart)
 			: !char.IsUpper(input, previousStart);
@@ -356,9 +357,10 @@ public static partial class CaseConverter
 	/// <param name="input">The string to inspect.</param>
 	/// <param name="start">The index of the first letter of the run.</param>
 	/// <returns><c>true</c> if no letter in the run is uppercase or titlecase; otherwise, <c>false</c>.</returns>
+	/// <remarks>Combining marks are stepped over, so a decomposed accent does not end the run.</remarks>
 	private static bool AreLettersFromIndexLowercase(string input, int start)
 	{
-		for (int i = start; i < input.Length && char.IsLetter(input, i); i += CodePointLength(input, i))
+		for (int i = start; i < input.Length && char.IsLetter(input, i); i = SkipOverCombiningMarks(input, i + CodePointLength(input, i)))
 		{
 			if (!char.IsLower(input, i))
 			{
@@ -375,9 +377,10 @@ public static partial class CaseConverter
 	/// <param name="input">The string to inspect.</param>
 	/// <param name="start">The index of the first letter of the run.</param>
 	/// <returns><c>true</c> if every letter in the run is uppercase; otherwise, <c>false</c>.</returns>
+	/// <remarks>Combining marks are stepped over, so a decomposed accent does not end the run.</remarks>
 	private static bool AreLettersFromIndexUppercase(string input, int start)
 	{
-		for (int i = start; i < input.Length && char.IsLetter(input, i); i += CodePointLength(input, i))
+		for (int i = start; i < input.Length && char.IsLetter(input, i); i = SkipOverCombiningMarks(input, i + CodePointLength(input, i)))
 		{
 			if (!char.IsUpper(input, i))
 			{
