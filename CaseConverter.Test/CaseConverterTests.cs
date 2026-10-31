@@ -520,6 +520,25 @@ public class CaseConverterTests
 		Assert.AreEqual(macro, input.ToMacroCase());
 	}
 
+	// An apostrophe after a digit split the word, so the plural "1990's" lost its "s" to a word of its own:
+	// snake "the_1990_s", Pascal "The1990S", Title "The 1990'S" (#154).
+	[TestMethod]
+	[DataRow("the 1990's", "The 1990's", "The1990s", "the1990s", "the_1990s", "THE_1990S")]
+	[DataRow("the 90\u2019s", "The 90\u2019s", "The90s", "the90s", "the_90s", "THE_90S")]
+	[DataRow("4's and 5's", "4's And 5's", "4sAnd5s", "4sAnd5s", "4s_and_5s", "4S_AND_5S")]
+	[DataRow("1990's", "1990's", "1990s", "1990s", "1990s", "1990S")]
+	[DataRow("80's music", "80's Music", "80sMusic", "80sMusic", "80s_music", "80S_MUSIC")]
+	public void ApostropheAfterADigitShouldNotSplitTheWord(string input, string title, string pascal, string camel, string snake, string macro)
+	{
+		Assert.AreEqual(title, input.ToTitleCase());
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToPascalCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToTitleCase().ToSnakeCase());
+	}
+
 	// An apostrophe after a decomposed accent ("e" + U+0301) followed the combining mark rather than its
 	// base letter, so it split the word: NFD "café's menu" gave "café_s_menu" where NFC gave "cafés_menu".
 	[TestMethod]
@@ -554,7 +573,6 @@ public class CaseConverterTests
 	[DataRow("'quoted' word", "quoted_word")]
 	[DataRow("\u2019quoted\u2019 word", "quoted_word")]
 	[DataRow("rock 'n' roll", "rock_n_roll")]
-	[DataRow("80's music", "80_s_music")]
 	public void ApostropheNotBetweenLettersShouldStillSeparateWords(string input, string expected)
 	{
 		Assert.AreEqual(expected, input.ToSnakeCase());

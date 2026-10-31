@@ -389,8 +389,8 @@ public static partial class CaseConverter
 	}
 
 	/// <summary>
-	/// Determines whether the code point at <paramref name="start"/> is an apostrophe with a letter on
-	/// each side of it.
+	/// Determines whether the code point at <paramref name="start"/> is an apostrophe with a letter or
+	/// digit before it and a letter after it.
 	/// </summary>
 	/// <param name="input">The string being processed.</param>
 	/// <param name="previousStart">The index of the preceding code point, or -1 if there is none.</param>
@@ -400,12 +400,16 @@ public static partial class CaseConverter
 	/// <remarks>
 	/// A combining mark before the apostrophe is skipped to reach its base letter, so a decomposed accent
 	/// (<c>"e"</c> + U+0301) counts as a letter just as the composed <c>"é"</c> does.
+	/// <para>
+	/// A digit before the apostrophe counts too, so the plural <c>"1990's"</c> stays one word rather than
+	/// splitting off its <c>"s"</c>, the same as <c>"1990s"</c> does.
+	/// </para>
 	/// </remarks>
 	private static bool IsApostropheWithinWord(string input, int previousStart, int start, int nextStart) =>
 		input[start] is '\'' or '\u2019'
 		&& previousStart >= 0
 		&& nextStart < input.Length
-		&& char.IsLetter(input, SkipBackOverCombiningMarks(input, previousStart))
+		&& char.IsLetterOrDigit(input, SkipBackOverCombiningMarks(input, previousStart))
 		&& char.IsLetter(input, nextStart);
 
 	/// <summary>
@@ -919,7 +923,7 @@ public static partial class CaseConverter
 	};
 
 	/// <summary>
-	/// Lowercases each letter that directly follows a digit.
+	/// Lowercases each letter that directly follows a digit, or a digit and an apostrophe.
 	/// </summary>
 	/// <param name="input">The output of <see cref="TitleCaseKeepingTypographicApostrophes"/>.</param>
 	/// <returns>A new string with each letter after a digit lowercased.</returns>
@@ -929,11 +933,17 @@ public static partial class CaseConverter
 	/// not break between a digit and a letter, so snake_case, kebab-case and MACRO_CASE keep <c>"1st"</c>
 	/// as one word. Lowering the letter here makes Title Case, PascalCase and camelCase agree with them,
 	/// so <c>x.ToPascalCase().ToSnakeCase()</c> is the same as <c>x.ToSnakeCase()</c>.
+	/// <para>
+	/// It also treats the letter after an apostrophe as the start of a word, so <c>"the 1990's"</c> would
+	/// become <c>"The 1990'S"</c>. A letter after a digit and an in-word apostrophe is lowered for the same
+	/// reason, which keeps the suffix as lowercase as <c>"1990s"</c> keeps it.
+	/// </para>
 	/// </remarks>
 	private static string LowercaseLettersAfterDigits(string input)
 	{
 		StringBuilder builder = new(input.Length);
 		int previousStart = -1;
+		int beforePreviousStart = -1;
 
 		for (int i = 0; i < input.Length;)
 		{
@@ -945,8 +955,11 @@ public static partial class CaseConverter
 #else
 			string codePoint = input[i..(i + length)];
 #endif
-			bool followsDigit = previousStart >= 0 && char.IsDigit(input, previousStart);
+			bool followsDigit = previousStart >= 0
+				&& (char.IsDigit(input, previousStart)
+					|| (input[previousStart] is '\'' or '\u2019' && beforePreviousStart >= 0 && char.IsDigit(input, beforePreviousStart)));
 			builder.Append(followsDigit && char.IsLetter(input, i) ? ToLowerInvariantFull(codePoint) : codePoint);
+			beforePreviousStart = previousStart;
 			previousStart = i;
 			i += length;
 		}
