@@ -21,14 +21,61 @@ public static partial class CaseConverter
 	private static int CodePointLength(string input, int index) => char.IsSurrogatePair(input, index) ? 2 : 1;
 
 	/// <summary>
-	/// Determines whether the code point at <paramref name="index"/> is a combining mark, such as a
-	/// Devanagari vowel sign or the U+0301 accent of a decomposed <c>"é"</c>.
+	/// Determines whether the code point at <paramref name="index"/> is part of the letter before it: a
+	/// combining mark, such as a Devanagari vowel sign or the U+0301 accent of a decomposed <c>"é"</c>, or a
+	/// format character inside a word.
 	/// </summary>
 	/// <param name="input">The string to inspect.</param>
 	/// <param name="index">The index of the first code unit of the code point.</param>
-	/// <returns><c>true</c> if the code point is a non-spacing, spacing combining or enclosing mark; otherwise, <c>false</c>.</returns>
+	/// <returns>
+	/// <c>true</c> if the code point is a non-spacing, spacing combining or enclosing mark, or a format
+	/// character inside a word; otherwise, <c>false</c>.
+	/// </returns>
+	/// <remarks>See <see cref="IsFormatCharacterWithinWord"/> for which format characters count.</remarks>
 	private static bool IsCombiningMark(string input, int index) =>
+		IsMark(input, index) || IsFormatCharacterWithinWord(input, index);
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> is a non-spacing, spacing combining or
+	/// enclosing mark.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <returns><c>true</c> if the code point is a mark; otherwise, <c>false</c>.</returns>
+	private static bool IsMark(string input, int index) =>
 		CharUnicodeInfo.GetUnicodeCategory(input, index) is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or UnicodeCategory.EnclosingMark;
+
+	/// <summary>
+	/// Determines whether the character at <paramref name="index"/> is a format character with a letter on
+	/// each side, such as the zero-width non-joiner of Persian <c>"میخواهم"</c>, the zero-width joiner of a
+	/// Devanagari conjunct or a soft hyphen.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the character to test.</param>
+	/// <returns><c>true</c> if the character belongs to the word around it; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// These characters change how a word joins or hyphenates, not where it ends, so turning one into a
+	/// separator split a word where the reader sees none. The letter before may carry combining marks, as the
+	/// virama of <c>"क्‍ष"</c> does. The zero-width space (U+200B) is left out because it marks a word break.
+	/// Only a single UTF-16 code unit counts, so <see cref="TitleCaseKeepingTypographicApostrophes"/> can swap
+	/// it out and back at the same index.
+	/// </remarks>
+	private static bool IsFormatCharacterWithinWord(string input, int index)
+	{
+		if (index <= 0 || index + 1 >= input.Length || input[index] == '\u200B' || char.IsSurrogate(input[index])
+			|| char.GetUnicodeCategory(input[index]) != UnicodeCategory.Format)
+		{
+			return false;
+		}
+
+		int previousStart = index - (index >= 2 && char.IsSurrogatePair(input, index - 2) ? 2 : 1);
+		while (previousStart > 0 && IsMark(input, previousStart))
+		{
+			previousStart -= previousStart >= 2 && char.IsSurrogatePair(input, previousStart - 2) ? 2 : 1;
+		}
+
+		return char.IsLetter(input, previousStart) && char.IsLetter(input, index + 1);
+	}
 
 	/// <summary>
 	/// Returns the index of the code point that the combining marks ending at <paramref name="index"/>
@@ -483,12 +530,30 @@ public static partial class CaseConverter
 		// takes the case of the nearest letter that has one: "STRAßE" is a single all-caps word, and
 		// the "ß" of "GROßBar" is uppercase, so "Bar" starts a word after it. The combining marks of a
 		// decomposed capital ("E" + U+0301) are skipped first, so "XMLÉtude" splits the same way
-		// whether its "É" is composed or not.
+		// whether its "É" is composed or not. The inherited case is looked up only before a capital,
+		// where it can matter, so a long run of such letters is not walked back over at each one.
 		bool previousIsLetter = char.IsLetter(input, previousStart);
-		bool previousIsUpper = char.IsUpper(input, previousStart) || InheritsUppercase(input, previousStart);
 		bool currentIsUpper = char.IsUpper(input, start);
+		bool previousIsUpper = char.IsUpper(input, previousStart) || (currentIsUpper && InheritsUppercase(input, previousStart));
 
-		int casedNextStart = SkipLowercaseWithNoUppercase(input, SkipOverCombiningMarks(input, nextStart));
+		// The full title case of "ŉ" is "ʼN", whose U+02BC is a modifier letter. Before a capital it
+		// opens that word, so "DieʼNBoek" breaks before the "ʼ" and keeps "ʼN" together, instead of
+		// treating it as a caseless letter that joins the word before it.
+		if (IsWordInitialApostrophe(input, previousStart))
+		{
+			return false;
+		}
+
+		if (IsWordInitialApostrophe(input, start))
+		{
+			return previousIsLetter || char.IsDigit(input, previousStart);
+		}
+
+		// The scan runs only when an acronym tail is possible: run at every code point, it made a long
+		// run of letters with no uppercase form quadratic.
+		int casedNextStart = previousIsUpper && currentIsUpper
+			? SkipLowercaseWithNoUppercase(input, SkipOverCombiningMarks(input, nextStart))
+			: input.Length;
 
 		// The tail of an acronym run that begins a new word: "XMLDoc" breaks before the "D". A lone
 		// plural "s" is not a word, so "APIs" and "getIDs" keep the acronym whole.
@@ -503,8 +568,10 @@ public static partial class CaseConverter
 		// as MACRO_CASE writes "1st" as "1ST", so it stays in the digit's word. A caseless letter (Han,
 		// kana, Hangul) is treated the same way: MACRO_CASE writes "用户id" as "用户ID", so that run stays
 		// whole too, while "名Abc" still breaks before the "A".
+		// currentIsUpper is tested first because EndsWordThatIsNotUppercase scans backward over a run of
+		// letters with no uppercase form, which is quadratic when repeated at every code point of one.
 		bool previousIsCaseless = IsCaselessLetter(input, previousStart);
-		if (EndsWordThatIsNotUppercase(input, previousStart) && currentIsUpper
+		if (currentIsUpper && EndsWordThatIsNotUppercase(input, previousStart)
 			&& ((previousIsLetter && !previousIsCaseless) || ((previousIsCaseless || char.IsDigit(input, previousStart)) && !IsWholeCapitalRun(input, start))))
 		{
 			return true;
@@ -529,6 +596,26 @@ public static partial class CaseConverter
 	/// <returns><c>true</c> if the code point is a letter that is neither uppercase, lowercase nor titlecase; otherwise, <c>false</c>.</returns>
 	private static bool IsCaselessLetter(string input, int index) =>
 		CharUnicodeInfo.GetUnicodeCategory(input, index) is UnicodeCategory.OtherLetter or UnicodeCategory.ModifierLetter;
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> is a U+02BC MODIFIER LETTER
+	/// APOSTROPHE followed by a capital, as in <c>"ʼN"</c>, the full title case of <c>"ŉ"</c>.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <returns><c>true</c> if the apostrophe starts a capitalised word; otherwise, <c>false</c>.</returns>
+	private static bool IsWordInitialApostrophe(string input, int index) =>
+		input[index] == 'ʼ' && index + 1 < input.Length && char.IsUpper(input, index + 1);
+
+	/// <summary>
+	/// Determines whether a word starts at <paramref name="index"/> with a U+02BC followed by a capital.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="previousStart">The index of the preceding code point, or -1 at the start.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <returns><c>true</c> if <see cref="IsWordInitialApostrophe"/> holds and no word character precedes it; otherwise, <c>false</c>.</returns>
+	private static bool StartsWordWithApostrophe(string input, int previousStart, int index) =>
+		IsWordInitialApostrophe(input, index) && (previousStart < 0 || !IsWordCharacter(input, previousStart));
 
 	/// <summary>
 	/// Determines whether a run of at least two capitals starts at <paramref name="index"/> and ends its
@@ -808,7 +895,20 @@ public static partial class CaseConverter
 #endif
 			// An "İ" is left for TitleCaseKeepingTypographicApostrophes to map, so one that starts the
 			// word keeps its dot: "İZMİR" becomes "İzmir", the same as "İzmir" does.
-			builder.Append(IsAllCaps(StemBeforeApostrophe(word)) ? ToLowerInvariantWithFinalSigma(word) : word);
+			if (!IsAllCaps(StemBeforeApostrophe(word)))
+			{
+				builder.Append(word);
+			}
+			else if (IsWordInitialApostrophe(word, 0))
+			{
+				// "ʼN" is the title case of "ŉ", not an acronym, so its capital is kept.
+				string lowered = ToLowerInvariantWithFinalSigma(word);
+				builder.Append(word, 0, 2).Append(lowered, 2, lowered.Length - 2);
+			}
+			else
+			{
+				builder.Append(ToLowerInvariantWithFinalSigma(word));
+			}
 		}
 
 		return builder.ToString();
@@ -988,8 +1088,8 @@ public static partial class CaseConverter
 	}
 
 	/// <summary>
-	/// Applies <see cref="TextInfo.ToTitleCase(string)"/>, treating an in-word U+2019 the same as an ASCII
-	/// apostrophe, and case-mapping <c>"İ"</c> and <c>"ı"</c>.
+	/// Applies <see cref="TextInfo.ToTitleCase(string)"/>, treating an in-word U+2019 or format character the
+	/// same as an ASCII apostrophe, and case-mapping <c>"İ"</c> and <c>"ı"</c>.
 	/// </summary>
 	/// <param name="input">The string to convert.</param>
 	/// <returns>A new string in Title Case.</returns>
@@ -997,13 +1097,20 @@ public static partial class CaseConverter
 	/// <see cref="TextInfo.ToTitleCase(string)"/> keeps the letter after an ASCII <c>'</c> lowercase, but
 	/// treats U+2019 as a word separator, so <c>"don’t"</c> would become <c>"Don’T"</c>. Each in-word
 	/// U+2019 is swapped for <c>'</c> before the call and restored at the same index afterwards, which is
-	/// safe because <see cref="TextInfo.ToTitleCase(string)"/> does not change the string's length.
+	/// safe because <see cref="TextInfo.ToTitleCase(string)"/> does not change the string's length. A format
+	/// character inside a word, such as a soft hyphen, is swapped the same way, since it too is read as a
+	/// separator: <c>"co\u00ADoperate"</c> would become <c>"Co\u00ADOperate"</c>.
 	/// <para>
 	/// The invariant <see cref="TextInfo"/> leaves <c>"İ"</c> (U+0130) and <c>"ı"</c> (U+0131) unmapped, so
 	/// a word could start with <c>"ı"</c> or keep an <c>"İ"</c> mid-word. Each is swapped for <c>"I"</c> or
 	/// <c>"i"</c> before the call. Afterwards, an <c>"I"</c> at that index means the letter starts a word, so
 	/// <c>"İ"</c> is restored (it is already its own title case) and <c>"ı"</c> becomes <c>"I"</c>; an
 	/// <c>"i"</c> means it does not, so <c>"İ"</c> becomes <c>"i"</c> and <c>"ı"</c> is restored.
+	/// </para>
+	/// <para>
+	/// <see cref="TextInfo.ToTitleCase(string)"/> takes the U+02BC of <c>"ʼN"</c>, the full title case of
+	/// <c>"ŉ"</c>, for the word's first letter and lowercases the <c>"N"</c>. The capital after a
+	/// word-initial U+02BC is restored afterwards, so title-casing <c>"ʼN"</c> again leaves it unchanged.
 	/// </para>
 	/// </remarks>
 	private static string TitleCaseKeepingTypographicApostrophes(string input)
@@ -1016,7 +1123,7 @@ public static partial class CaseConverter
 		{
 			int nextStart = i + CodePointLength(input, i);
 
-			if (input[i] == '’' && IsApostropheWithinWord(input, previousStart, i, nextStart))
+			if ((input[i] == '’' && IsApostropheWithinWord(input, previousStart, i, nextStart)) || IsFormatCharacterWithinWord(input, i))
 			{
 				characters[i] = '\'';
 				substitutions.Add(i);
@@ -1025,6 +1132,10 @@ public static partial class CaseConverter
 			{
 				characters[i] = input[i] == '\u0130' ? 'I' : 'i';
 				substitutions.Add(i);
+			}
+			else if (StartsWordWithApostrophe(input, previousStart, i))
+			{
+				substitutions.Add(nextStart);
 			}
 
 			previousStart = i;

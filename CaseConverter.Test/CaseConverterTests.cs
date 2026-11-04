@@ -542,6 +542,40 @@ public class CaseConverterTests
 		Assert.AreEqual(composed.ToTitleCase(), Compose(decomposed.ToTitleCase()));
 	}
 
+	// A format character inside a word (ZWNJ in Persian spelling, ZWJ in an Indic conjunct, a soft hyphen)
+	// was turned into a word break, so one word became two: "co\u00ADoperate" gave "CoOperate".
+	[TestMethod]
+	[DataRow("\u0645\u06CC\u200C\u062E\u0648\u0627\u0647\u0645", "\u0645\u06CC\u200C\u062E\u0648\u0627\u0647\u0645", "\u0645\u06CC\u200C\u062E\u0648\u0627\u0647\u0645", "\u0645\u06CC\u200C\u062E\u0648\u0627\u0647\u0645")]
+	[DataRow("\u0915\u094D\u200D\u0937", "\u0915\u094D\u200D\u0937", "\u0915\u094D\u200D\u0937", "\u0915\u094D\u200D\u0937")]
+	[DataRow("co\u00ADoperate", "Co\u00ADoperate", "co\u00ADoperate", "CO\u00ADOPERATE")]
+	public void AFormatCharacterInsideAWordShouldNotSplitIt(string word, string title, string lower, string upper)
+	{
+		Assert.AreEqual(title, word.ToTitleCase());
+		Assert.AreEqual(title, word.ToPascalCase());
+		Assert.AreEqual(lower, word.ToCamelCase());
+		Assert.AreEqual(lower, word.ToSnakeCase());
+		Assert.AreEqual(lower, word.ToKebabCase());
+		Assert.AreEqual(upper, word.ToMacroCase());
+	}
+
+	[TestMethod]
+	[DataRow("co\u00ADoperate now", "Co\u00ADoperate Now", "co\u00ADoperate_now")]
+	[DataRow("\u0645\u06CC\u200C\u062E\u0648\u0627\u0647\u0645 test", "\u0645\u06CC\u200C\u062E\u0648\u0627\u0647\u0645 Test", "\u0645\u06CC\u200C\u062E\u0648\u0627\u0647\u0645_test")]
+	public void AFormatCharacterInsideAWordShouldStayInThatWord(string input, string title, string snake)
+	{
+		Assert.AreEqual(title, input.ToTitleCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+	}
+
+	[TestMethod]
+	[DataRow("foo\u200Bbar", "foo_bar")]
+	[DataRow("\u00ADfoo bar\u00AD", "foo_bar")]
+	[DataRow("foo \u200C bar", "foo_bar")]
+	public void AFormatCharacterNotBetweenLettersShouldStillSeparateWords(string input, string snake)
+	{
+		Assert.AreEqual(snake, input.ToSnakeCase());
+	}
+
 	[TestMethod]
 	[DataRow("cafe\u0301's menu", "cafe\u0301s_menu")]
 	[DataRow("cafe\u0301\u2019s menu", "cafe\u0301s_menu")]
@@ -991,6 +1025,57 @@ public class CaseConverterTests
 	public void AWordStartingWithNApostropheShouldBeTitleCased()
 	{
 		Assert.AreEqual("Die \u02BCN Boek", "die \u0149 boek".ToTitleCase());
-		Assert.AreEqual(3, "die \u0149 boek".ToPascalCase().ToSnakeCase().Split('_').Length);
+		Assert.AreEqual("die_\u02BCn_boek", "die \u0149 boek".ToPascalCase().ToSnakeCase());
+	}
+
+	// The "\u02BC" in "\u02BCN" is a modifier letter, which the splitter took for a caseless letter: it broke
+	// between "\u02BC" and "N", and joined "\u02BC" to the word before it.
+	[TestMethod]
+	[DataRow("die \u0149 boek")]
+	[DataRow("\u0149 boek")]
+	[DataRow("\u0149id")]
+	public void AWordStartingWithNApostropheShouldConvertToItself(string input)
+	{
+		string title = input.ToTitleCase();
+		string pascal = input.ToPascalCase();
+		Assert.AreEqual(title, title.ToTitleCase());
+		Assert.AreEqual(pascal, pascal.ToPascalCase());
+		Assert.HasCount(input.ToSnakeCase().Split('_').Length, pascal.ToSnakeCase().Split('_'));
+	}
+
+	private static readonly Func<string, string>[] Converters =
+	[
+		CaseConverter.ToTitleCase,
+		CaseConverter.ToPascalCase,
+		CaseConverter.ToCamelCase,
+		CaseConverter.ToSnakeCase,
+		CaseConverter.ToKebabCase,
+		CaseConverter.ToMacroCase,
+	];
+
+	[TestMethod]
+	[DataRow("\u00DF", DisplayName = "sharp s")]
+	[DataRow("\u0138", DisplayName = "kra")]
+	[DataRow("\U0001D4EA", DisplayName = "mathematical script a")]
+	public void LongRunOfLowercaseWithNoUppercaseConvertsInLinearTime(string unit)
+	{
+		// Each of these survives ToUpperInvariant unchanged. A word-boundary scan over the whole run at
+		// every code point made 16,000 of them take ~17 s; linear work takes a few milliseconds.
+		string run = string.Concat(Enumerable.Repeat(unit, 16000));
+
+		AssertConvertsQuickly(run);
+		AssertConvertsQuickly(new string('A', 16000) + run + "a");
+	}
+
+	private static void AssertConvertsQuickly(string input)
+	{
+		foreach (Func<string, string> convert in Converters)
+		{
+			System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+			_ = convert(input);
+			stopwatch.Stop();
+
+			Assert.IsLessThan(TimeSpan.FromSeconds(2), stopwatch.Elapsed, $"{convert.Method.Name} took {stopwatch.Elapsed} on {input.Length} chars.");
+		}
 	}
 }
