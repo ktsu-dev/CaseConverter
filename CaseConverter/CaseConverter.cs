@@ -307,29 +307,10 @@ public static partial class CaseConverter
 			{
 				builder.Append(input, i, length);
 			}
-			else if (IsApostropheWithinWord(input, previousStart, i, nextStart)
-				&& !uppercaseSuffix && !lowercaseSuffix
-				&& IsPluralAcronymEndingAt(input, previousStart)
-				&& (AreLettersFromIndexLowercase(input, nextStart) || AreLettersFromIndexUppercase(input, nextStart)))
-			{
-				// "CEOs've": with the apostrophe gone, "CEOsve" would split before the "O", because an "s"
-				// with more lowercase after it is no plural, and "CEOsVE" the same way. Uppercasing the "s"
-				// and the contraction joins them to the acronym, as "CEO's" becomes "CEOS".
-				builder[^1] = 'S';
-				uppercaseSuffix = true;
-				lowercaseNextLetter = false;
-			}
 			else if (IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
-				int previousLetterStart = SkipBackOverCombiningMarks(input, previousStart);
-				// A capital that is already being lowercased (the "ARTAGNAN" of "d'ARTAGNAN's") does not
-				// uppercase the suffix after it, or the suffix would split off as a word of its own.
-				uppercaseSuffix = !lowercaseSuffix && char.IsUpper(input, previousLetterStart) && AreLettersFromIndexLowercase(input, nextStart);
-				// A run that is already being lowercased (the "NEIL" of "o'NEIL'S") counts as lowercase, so an
-				// all-caps suffix after it is lowercased too rather than splitting off as a word of its own.
-				lowercaseSuffix = (lowercaseSuffix && AreLettersFromIndexUppercase(input, nextStart))
-					|| IsCapitalRunAfterLowercaseLetter(input, previousLetterStart, nextStart);
-				lowercaseNextLetter = !uppercaseSuffix && IsCapitalAfterApostropheInLowercaseContext(input, previousLetterStart, nextStart);
+				(uppercaseSuffix, lowercaseSuffix, lowercaseNextLetter) =
+					CaseSuffixAfterApostrophe(input, builder, previousStart, nextStart, uppercaseSuffix, lowercaseSuffix);
 			}
 			else
 			{
@@ -351,6 +332,42 @@ public static partial class CaseConverter
 		}
 
 		return builder.ToString();
+	}
+
+	/// <summary>
+	/// Decides how the letters after an in-word apostrophe are cased, so that dropping the apostrophe does
+	/// not split the word, and returns the new state for <see cref="ReplaceNonAlphaNumericWithSpace"/>.
+	/// </summary>
+	/// <param name="input">The string being processed.</param>
+	/// <param name="builder">The output so far, ending with the letter before the apostrophe.</param>
+	/// <param name="previousStart">The index of the code point before the apostrophe.</param>
+	/// <param name="nextStart">The index of the code point after the apostrophe.</param>
+	/// <param name="uppercaseSuffix">Whether the letters before the apostrophe were being uppercased.</param>
+	/// <param name="lowercaseSuffix">Whether the letters before the apostrophe were being lowercased.</param>
+	/// <returns>Whether to uppercase the suffix, lowercase it, and lowercase just its first letter.</returns>
+	private static (bool UppercaseSuffix, bool LowercaseSuffix, bool LowercaseNextLetter) CaseSuffixAfterApostrophe(
+		string input, StringBuilder builder, int previousStart, int nextStart, bool uppercaseSuffix, bool lowercaseSuffix)
+	{
+		// "CEOs've": with the apostrophe gone, "CEOsve" would split before the "O", because an "s" with
+		// more lowercase after it is no plural, and "CEOsVE" the same way. Uppercasing the "s" and the
+		// contraction joins them to the acronym, as "CEO's" becomes "CEOS".
+		if (!uppercaseSuffix && !lowercaseSuffix && IsPluralAcronymEndingAt(input, previousStart)
+			&& (AreLettersFromIndexLowercase(input, nextStart) || AreLettersFromIndexUppercase(input, nextStart)))
+		{
+			builder[^1] = 'S';
+			return (true, false, false);
+		}
+
+		int previousLetterStart = SkipBackOverCombiningMarks(input, previousStart);
+		// A capital that is already being lowercased (the "ARTAGNAN" of "d'ARTAGNAN's") does not
+		// uppercase the suffix after it, or the suffix would split off as a word of its own.
+		bool uppercase = !lowercaseSuffix && char.IsUpper(input, previousLetterStart) && AreLettersFromIndexLowercase(input, nextStart);
+		// A run that is already being lowercased (the "NEIL" of "o'NEIL'S") counts as lowercase, so an
+		// all-caps suffix after it is lowercased too rather than splitting off as a word of its own.
+		bool lowercase = (lowercaseSuffix && AreLettersFromIndexUppercase(input, nextStart))
+			|| IsCapitalRunAfterLowercaseLetter(input, previousLetterStart, nextStart);
+		bool lowercaseNextLetter = !uppercase && IsCapitalAfterApostropheInLowercaseContext(input, previousLetterStart, nextStart);
+		return (uppercase, lowercase, lowercaseNextLetter);
 	}
 
 	/// <summary>
