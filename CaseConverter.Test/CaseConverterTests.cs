@@ -561,6 +561,43 @@ public class CaseConverterTests
 		Assert.AreEqual(macro, input.ToMacroCase());
 	}
 
+	// A plural acronym followed by a contraction split inside the acronym: with the apostrophe joined out,
+	// "CEOsve" read the "s" as the start of a word, so snake gave "ce_osve" and Pascal "CeOsve" (#159).
+	[TestMethod]
+	[DataRow("CEOs've", "Ceos've", "Ceosve", "ceosve", "ceosve", "ceosve", "CEOSVE")]
+	[DataRow("CEOs\u2019ve", "Ceos\u2019ve", "Ceosve", "ceosve", "ceosve", "ceosve", "CEOSVE")]
+	[DataRow("VIPs're here", "Vips're Here", "VipsreHere", "vipsreHere", "vipsre_here", "vipsre-here", "VIPSRE_HERE")]
+	[DataRow("VIPs\u2019re here", "Vips\u2019re Here", "VipsreHere", "vipsreHere", "vipsre_here", "vipsre-here", "VIPSRE_HERE")]
+	[DataRow("DJs'll play", "Djs'll Play", "DjsllPlay", "djsllPlay", "djsll_play", "djsll-play", "DJSLL_PLAY")]
+	[DataRow("DJs\u2019ll play", "Djs\u2019ll Play", "DjsllPlay", "djsllPlay", "djsll_play", "djsll-play", "DJSLL_PLAY")]
+	[DataRow("MCs'll", "Mcs'll", "Mcsll", "mcsll", "mcsll", "mcsll", "MCSLL")]
+	[DataRow("CEOs'VE", "Ceos've", "Ceosve", "ceosve", "ceosve", "ceosve", "CEOSVE")]
+	[DataRow("the VIPs're here", "The Vips're Here", "TheVipsreHere", "theVipsreHere", "the_vipsre_here", "the-vipsre-here", "THE_VIPSRE_HERE")]
+	public void PluralAcronymBeforeAContractionShouldStayOneWord(string input, string title, string pascal, string camel, string snake, string kebab, string macro)
+	{
+		Assert.AreEqual(title, input.ToTitleCase());
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(kebab, input.ToKebabCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+	}
+
+	// The neighbouring forms #159 must leave as they were.
+	[TestMethod]
+	[DataRow("APIs", "apis")]
+	[DataRow("CEOs", "ceos")]
+	[DataRow("CEO's", "ceos")]
+	[DataRow("CEOs' office", "ceos_office")]
+	[DataRow("VIPS're", "vipsre")]
+	[DataRow("Vips're", "vipsre")]
+	[DataRow("O'Reilly", "oreilly")]
+	[DataRow("UserIDIsValid", "user_id_is_valid")]
+	[DataRow("Ms're", "msre")]
+	[DataRow("CEOS'VE", "ceosve")]
+	public void FormsNextToAPluralAcronymContractionShouldKeepTheirWords(string input, string snake) =>
+		Assert.AreEqual(snake, input.ToSnakeCase());
+
 	// An apostrophe after a digit split the word, so the plural "1990's" lost its "s" to a word of its own:
 	// snake "the_1990_s", Pascal "The1990S", Title "The 1990'S" (#154).
 	[TestMethod]

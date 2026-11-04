@@ -307,6 +307,18 @@ public static partial class CaseConverter
 			{
 				builder.Append(input, i, length);
 			}
+			else if (IsApostropheWithinWord(input, previousStart, i, nextStart)
+				&& !uppercaseSuffix && !lowercaseSuffix
+				&& IsPluralAcronymEndingAt(input, previousStart)
+				&& (AreLettersFromIndexLowercase(input, nextStart) || AreLettersFromIndexUppercase(input, nextStart)))
+			{
+				// "CEOs've": with the apostrophe gone, "CEOsve" would split before the "O", because an "s"
+				// with more lowercase after it is no plural, and "CEOsVE" the same way. Uppercasing the "s"
+				// and the contraction joins them to the acronym, as "CEO's" becomes "CEOS".
+				builder[^1] = 'S';
+				uppercaseSuffix = true;
+				lowercaseNextLetter = false;
+			}
 			else if (IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
 				int previousLetterStart = SkipBackOverCombiningMarks(input, previousStart);
@@ -339,6 +351,45 @@ public static partial class CaseConverter
 		}
 
 		return builder.ToString();
+	}
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> is the plural <c>"s"</c> of an acronym:
+	/// a lowercase <c>"s"</c> straight after at least two capitals, as in <c>"CEOs"</c> or <c>"DJs"</c>.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the code point to test.</param>
+	/// <returns><c>true</c> if the code point is <c>"s"</c> after a run of two or more capitals; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// One capital is not enough, since <c>"Ms"</c> or <c>"Its"</c> never split: only an acronym run has a
+	/// tail that <see cref="SplitOnCaseChange(string)"/> can break before.
+	/// </remarks>
+	private static bool IsPluralAcronymEndingAt(string input, int index)
+	{
+		if (input[index] != 's')
+		{
+			return false;
+		}
+
+		int capitals = 0;
+		for (int i = index; i > 0 && capitals < 2;)
+		{
+			int previous = i - 1;
+			if (previous > 0 && char.IsLowSurrogate(input[previous]) && char.IsHighSurrogate(input[previous - 1]))
+			{
+				previous--;
+			}
+
+			if (!char.IsUpper(input, previous))
+			{
+				break;
+			}
+
+			capitals++;
+			i = previous;
+		}
+
+		return capitals >= 2;
 	}
 
 	/// <summary>
