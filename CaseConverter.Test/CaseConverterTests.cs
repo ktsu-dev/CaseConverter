@@ -960,4 +960,40 @@ public class CaseConverterTests
 		Assert.AreEqual("Die \u02BCN Boek", "die \u0149 boek".ToTitleCase());
 		Assert.AreEqual(3, "die \u0149 boek".ToPascalCase().ToSnakeCase().Split('_').Length);
 	}
+
+	private static readonly Func<string, string>[] Converters =
+	[
+		CaseConverter.ToTitleCase,
+		CaseConverter.ToPascalCase,
+		CaseConverter.ToCamelCase,
+		CaseConverter.ToSnakeCase,
+		CaseConverter.ToKebabCase,
+		CaseConverter.ToMacroCase,
+	];
+
+	[TestMethod]
+	[DataRow("\u00DF", DisplayName = "sharp s")]
+	[DataRow("\u0138", DisplayName = "kra")]
+	[DataRow("\U0001D4EA", DisplayName = "mathematical script a")]
+	public void LongRunOfLowercaseWithNoUppercaseConvertsInLinearTime(string unit)
+	{
+		// Each of these survives ToUpperInvariant unchanged. A word-boundary scan over the whole run at
+		// every code point made 16,000 of them take ~17 s; linear work takes a few milliseconds.
+		string run = string.Concat(Enumerable.Repeat(unit, 16000));
+
+		AssertConvertsQuickly(run);
+		AssertConvertsQuickly(new string('A', 16000) + run + "a");
+	}
+
+	private static void AssertConvertsQuickly(string input)
+	{
+		foreach (Func<string, string> convert in Converters)
+		{
+			System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+			_ = convert(input);
+			stopwatch.Stop();
+
+			Assert.IsLessThan(TimeSpan.FromSeconds(2), stopwatch.Elapsed, $"{convert.Method.Name} took {stopwatch.Elapsed} on {input.Length} chars.");
+		}
+	}
 }

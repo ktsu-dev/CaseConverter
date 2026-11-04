@@ -486,8 +486,11 @@ public static partial class CaseConverter
 		// A lowercase letter with no uppercase form, such as "ß" or "ﬁ", survives uppercasing, so it
 		// takes the case of the nearest letter that has one: "STRAßE" is a single all-caps word. The
 		// combining marks of a decomposed capital ("E" + U+0301) are skipped first, so "XMLÉtude"
-		// splits the same way whether its "É" is composed or not.
-		int casedNextStart = SkipLowercaseWithNoUppercase(input, SkipOverCombiningMarks(input, nextStart));
+		// splits the same way whether its "É" is composed or not. The scan runs only when an acronym
+		// tail is possible: run at every code point, it made a long run of such letters quadratic.
+		int casedNextStart = previousIsUpper && currentIsUpper
+			? SkipLowercaseWithNoUppercase(input, SkipOverCombiningMarks(input, nextStart))
+			: input.Length;
 
 		// The tail of an acronym run that begins a new word: "XMLDoc" breaks before the "D". A lone
 		// plural "s" is not a word, so "APIs" and "getIDs" keep the acronym whole.
@@ -502,8 +505,10 @@ public static partial class CaseConverter
 		// as MACRO_CASE writes "1st" as "1ST", so it stays in the digit's word. A caseless letter (Han,
 		// kana, Hangul) is treated the same way: MACRO_CASE writes "用户id" as "用户ID", so that run stays
 		// whole too, while "名Abc" still breaks before the "A".
+		// currentIsUpper is tested first because EndsWordThatIsNotUppercase scans backward over a run of
+		// letters with no uppercase form, which is quadratic when repeated at every code point of one.
 		bool previousIsCaseless = IsCaselessLetter(input, previousStart);
-		if (EndsWordThatIsNotUppercase(input, previousStart) && currentIsUpper
+		if (currentIsUpper && EndsWordThatIsNotUppercase(input, previousStart)
 			&& ((previousIsLetter && !previousIsCaseless) || ((previousIsCaseless || char.IsDigit(input, previousStart)) && !IsWholeCapitalRun(input, start))))
 		{
 			return true;
