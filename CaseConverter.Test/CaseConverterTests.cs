@@ -1209,4 +1209,40 @@ public class CaseConverterTests
 			Assert.IsLessThan(TimeSpan.FromSeconds(2), stopwatch.Elapsed, $"{convert.Method.Name} took {stopwatch.Elapsed} on {input.Length} chars.");
 		}
 	}
+
+	[TestMethod]
+	[DataRow("ms \u01C4", "Ms\u01C5", "ms\u01C5")]
+	[DataRow("Ljubljana \u01C8ubljana", "Ljubljana\u01C8ubljana", "ljubljana\u01C8ubljana")]
+	[DataRow("dobar \u01CBegoš", "Dobar\u01CBegoš", "dobar\u01CBegoš")]
+	[DataRow("a \u01F2ar", "A\u01F2ar", "a\u01F2ar")]
+	public void AWordStartingWithATitlecaseDigraphShouldKeepItsBoundary(string input, string pascal, string camel)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(pascal, pascal.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(camel, camel.ToCamelCase());
+		Assert.AreEqual(input.ToSnakeCase(), pascal.ToSnakeCase());
+	}
+
+	[TestMethod]
+	public void ACamelHumpAtATitlecaseDigraphShouldStartANewWord() =>
+		Assert.AreEqual("ms_\u01C6", "ms\u01C5".ToSnakeCase());
+
+	[TestMethod]
+	public void ATitlecaseDigraphFollowedByCapitalsShouldStayInOneWord()
+	{
+		Assert.AreEqual("\u01C6emal", "\u01C5EMAL".ToSnakeCase());
+		Assert.AreEqual("\u01C4EMAL", "\u01C5EMAL".ToMacroCase());
+		Assert.AreEqual("\u01C5emal", "\u01C5EMAL".ToTitleCase());
+		Assert.AreEqual("\u01C6emal", "\u01C5EMAL".ToKebabCase());
+	}
+
+	[TestMethod]
+	[DataRow("\u01C5EMAL", true)]
+	[DataRow("\u01C4EMAL", true)]
+	[DataRow("\u01C5emal", false)]
+	[DataRow("\u01C5", false)]
+	[DataRow("A\u01C5", false)]
+	public void IsAllCapsShouldCountATitlecaseDigraphBeforeACapitalAsCaps(string input, bool expected) =>
+		Assert.AreEqual(expected, input.IsAllCaps());
 }

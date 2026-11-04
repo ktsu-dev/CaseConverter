@@ -543,8 +543,8 @@ public static partial class CaseConverter
 		// whether its "É" is composed or not. The inherited case is looked up only before a capital,
 		// where it can matter, so a long run of such letters is not walked back over at each one.
 		bool previousIsLetter = char.IsLetter(input, previousStart);
-		bool currentIsUpper = char.IsUpper(input, start);
-		bool previousIsUpper = char.IsUpper(input, previousStart) || (currentIsUpper && InheritsUppercase(input, previousStart));
+		bool currentIsUpper = IsUpperOrTitlecase(input, start);
+		bool previousIsUpper = IsUpperOrTitlecase(input, previousStart) || (currentIsUpper && InheritsUppercase(input, previousStart));
 
 		// The full title case of "ŉ" is "ʼN", whose U+02BC is a modifier letter. Before a capital it
 		// opens that word, so "DieʼNBoek" breaks before the "ʼ" and keeps "ʼN" together, instead of
@@ -813,7 +813,7 @@ public static partial class CaseConverter
 	{
 		if (!IsLowercaseWithNoUppercase(input, index))
 		{
-			return !char.IsUpper(input, index);
+			return !IsUpperOrTitlecase(input, index);
 		}
 
 		for (int i = index; i > 0;)
@@ -822,12 +822,44 @@ public static partial class CaseConverter
 
 			if (!IsLowercaseWithNoUppercase(input, i))
 			{
-				return char.IsLetter(input, i) && !char.IsUpper(input, i);
+				return char.IsLetter(input, i) && !IsUpperOrTitlecase(input, i);
 			}
 		}
 
 		return false;
 	}
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> is a titlecase letter followed directly by a capital.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <param name="category">The Unicode category of the code point.</param>
+	/// <returns><c>true</c> if the code point is titlecase and the next letter, past any combining marks, is uppercase; otherwise, <c>false</c>.</returns>
+	private static bool IsTitlecaseBeforeCapital(string input, int index, UnicodeCategory category)
+	{
+		if (category != UnicodeCategory.TitlecaseLetter)
+		{
+			return false;
+		}
+
+		int nextStart = SkipOverCombiningMarks(input, index + CodePointLength(input, index));
+		return nextStart < input.Length && char.IsUpper(input, nextStart);
+	}
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> is an uppercase or titlecase letter.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <returns><c>true</c> if the code point is in category Lu or Lt; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// A titlecase digraph (<c>"ǅ"</c>, <c>"ǈ"</c>, <c>"ǋ"</c>, <c>"ǲ"</c>) is the capitalised form that starts
+	/// a word, but <see cref="char.IsUpper(string, int)"/> returns <c>false</c> for it. Counting it as a capital
+	/// lets <c>"msǅ"</c> break before the digraph, as Pascal case writes it, and keeps <c>"ǅEMAL"</c> whole.
+	/// </remarks>
+	private static bool IsUpperOrTitlecase(string input, int index) =>
+		char.IsUpper(input, index) || CharUnicodeInfo.GetUnicodeCategory(input, index) == UnicodeCategory.TitlecaseLetter;
 
 	/// <summary>
 	/// Returns a copy of this string, trimmed and with runs of spaces collapsed to one, with the first character converted to lowercase.
@@ -1228,6 +1260,8 @@ public static partial class CaseConverter
 	/// <returns>
 	/// <c>true</c> if no letter in the string is lowercase or titlecase; otherwise, <c>false</c>.
 	/// Letters without case, such as Han, kana or Hangul, are ignored, so a string made only of them is vacuously all caps.
+	/// A titlecase digraph followed directly by a capital, as in <c>"ǅEMAL"</c>, is that word written in capitals, so it
+	/// does not stop the string being all caps; on its own or before a lowercase letter, as in <c>"ǅemal"</c>, it does.
 	/// </returns>
 	public static bool IsAllCaps(this string output)
 	{
@@ -1243,7 +1277,8 @@ public static partial class CaseConverter
 			// uppercasing, so it does not stop "STRAßE" from being all caps either.
 			UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(output, i);
 			if ((category == UnicodeCategory.LowercaseLetter || category == UnicodeCategory.TitlecaseLetter)
-				&& !IsLowercaseWithNoUppercase(output, i))
+				&& !IsLowercaseWithNoUppercase(output, i)
+				&& !IsTitlecaseBeforeCapital(output, i, category))
 			{
 				return false;
 			}
