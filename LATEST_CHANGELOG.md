@@ -2,6 +2,7 @@
 
 Changes since v1.9.1:
 
+- Treat a titlecase digraph as a capital when splitting words [patch] (#158) (matt-edmondson)
 - Split a capitalised word after a capital followed by ß or a ligature [patch] (#141) (matt-edmondson)
 - Look past a decomposed accent when lowercasing a capital after an apostrophe [patch] (#146) (matt-edmondson)
 - Start a new word at "Is" or "As" after an acronym [patch] (#157) (matt-edmondson)
