@@ -560,8 +560,10 @@ public static partial class CaseConverter
 			: input.Length;
 
 		// The tail of an acronym run that begins a new word: "XMLDoc" breaks before the "D". A lone
-		// plural "s" is not a word, so "APIs" and "getIDs" keep the acronym whole.
-		if (previousIsUpper && currentIsUpper && casedNextStart < input.Length && char.IsLower(input, casedNextStart) && !IsPluralSuffix(input, casedNextStart))
+		// plural "s" is not a word, so "APIs" and "getIDs" keep the acronym whole, unless it spells
+		// "Is" or "As" before the next word: "UserIDIsValid" breaks before the "I".
+		if (previousIsUpper && currentIsUpper && casedNextStart < input.Length && char.IsLower(input, casedNextStart)
+			&& (!IsPluralSuffix(input, casedNextStart) || IsIsOrAsBeforeNextWord(input, start, casedNextStart)))
 		{
 			return true;
 		}
@@ -681,6 +683,34 @@ public static partial class CaseConverter
 		// A combining mark makes the "s" a different letter, as the composed "ś" is, so it is not a plural.
 		int nextStart = index + 1;
 		return nextStart >= input.Length || (!char.IsLetter(input, nextStart) && !IsCombiningMark(input, nextStart)) || char.IsUpper(input, nextStart);
+	}
+
+	/// <summary>
+	/// Determines whether the capital at <paramref name="capitalStart"/> and the <c>"s"</c> at
+	/// <paramref name="suffixStart"/> spell the word <c>"Is"</c> or <c>"As"</c>, followed by the
+	/// capital that starts the next word.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="capitalStart">The index of the capital that ends the acronym run.</param>
+	/// <param name="suffixStart">The index of the <c>"s"</c> that follows it.</param>
+	/// <returns>
+	/// <c>true</c> if the capital is <c>"I"</c> or <c>"A"</c>, the <c>"s"</c> directly follows it and a
+	/// capital follows the <c>"s"</c>; otherwise, <c>false</c>.
+	/// </returns>
+	/// <remarks>
+	/// <c>"Is"</c> and <c>"As"</c> have the same shape as a plural acronym, so without this
+	/// <c>"UserIDIsValid"</c> would read as the plural of <c>"IDI"</c>. An <c>"s"</c> that ends the word,
+	/// as in <c>"APIs"</c> or <c>"getIDs"</c>, is still a plural. The cost is that a plural acronym ending
+	/// in <c>"I"</c> or <c>"A"</c> and followed by another word, such as <c>"APIsList"</c>, splits as
+	/// <c>"AP Is List"</c>.
+	/// </remarks>
+	private static bool IsIsOrAsBeforeNextWord(string input, int capitalStart, int suffixStart)
+	{
+		int nextStart = suffixStart + 1;
+		return (input[capitalStart] == 'I' || input[capitalStart] == 'A')
+			&& suffixStart == capitalStart + 1
+			&& nextStart < input.Length
+			&& char.IsUpper(input, nextStart);
 	}
 
 	/// <summary>
@@ -1266,7 +1296,8 @@ public static partial class CaseConverter
 	/// A capital one-letter word followed by a word such as <c>"Ms"</c> or <c>"Is"</c> has the same
 	/// problem: <c>"Wait N Ms"</c> would become <c>"WaitNMs"</c>, which reads back as the plural acronym
 	/// <c>"NMs"</c> and is normalized to <c>"WaitNms"</c>. Lowering the two-letter word gives
-	/// <c>"WaitNms"</c> on the first pass.
+	/// <c>"WaitNms"</c> on the first pass. <c>"Is"</c> and <c>"As"</c> followed by a capitalised word are
+	/// left alone, because <c>"IfXIsNull"</c> reads back as <c>"If X Is Null"</c>.
 	/// </para>
 	/// </remarks>
 	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "Lowercasing is the point: the letter continues the previous one-letter word.")]
@@ -1283,7 +1314,12 @@ public static partial class CaseConverter
 			// into an acronym run; one lowered above is followed by a capital that starts a new word.
 			bool previousIsCapitalOneLetter = previousIsOneLetter && char.IsUpper(words[i - 1], 0);
 
-			if ((isOneLetter && previousIsOneLetter) || (previousIsCapitalOneLetter && IsLetterThenPluralS(words[i])))
+			// "Is" or "As" before a capitalised word is read back as its own word ("XIsNull" -> "X Is Null"),
+			// so only one at the end, or before a digit, has to be lowered.
+			bool isIsOrAsBeforeNextWord = (words[i] == "Is" || words[i] == "As")
+				&& i + 1 < words.Length && words[i + 1].Length > 0 && char.IsUpper(words[i + 1], 0);
+
+			if ((isOneLetter && previousIsOneLetter) || (previousIsCapitalOneLetter && IsLetterThenPluralS(words[i]) && !isIsOrAsBeforeNextWord))
 			{
 				words[i] = ToLowerInvariantFull(words[i]);
 			}

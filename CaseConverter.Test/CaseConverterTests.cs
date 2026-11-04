@@ -217,6 +217,42 @@ public class CaseConverterTests
 		Assert.AreEqual(title, input.ToTitleCase());
 	}
 
+	// "Is" and "As" after an acronym or a single capital have the shape of a plural acronym:
+	// "UserIDIsValid" read as the plural of "IDI" and fused into "user_idis_valid" (#104).
+
+	[TestMethod]
+	[DataRow("UserIDIsValid", "UserIdIsValid", "userIdIsValid", "user_id_is_valid", "user-id-is-valid", "USER_ID_IS_VALID", "User Id Is Valid")]
+	[DataRow("URLIsSet", "UrlIsSet", "urlIsSet", "url_is_set", "url-is-set", "URL_IS_SET", "Url Is Set")]
+	[DataRow("ConvertIDAsString", "ConvertIdAsString", "convertIdAsString", "convert_id_as_string", "convert-id-as-string", "CONVERT_ID_AS_STRING", "Convert Id As String")]
+	[DataRow("getAPIAsJson", "GetApiAsJson", "getApiAsJson", "get_api_as_json", "get-api-as-json", "GET_API_AS_JSON", "Get Api As Json")]
+	[DataRow("DOMIsReady", "DomIsReady", "domIsReady", "dom_is_ready", "dom-is-ready", "DOM_IS_READY", "Dom Is Ready")]
+	[DataRow("PlayerAIsDead", "PlayerAIsDead", "playerAIsDead", "player_a_is_dead", "player-a-is-dead", "PLAYER_A_IS_DEAD", "Player A Is Dead")]
+	public void IsOrAsAfterAnAcronymShouldStartItsOwnWord(string input, string pascal, string camel, string snake, string kebab, string macro, string title)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(kebab, input.ToKebabCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+		Assert.AreEqual(title, input.ToTitleCase());
+	}
+
+	[TestMethod]
+	public void IsAfterASingleCapitalShouldKeepAPascalCaseIdentifierUnchanged()
+	{
+		Assert.AreEqual("IfXIsNull", "IfXIsNull".ToPascalCase());
+		Assert.AreEqual("CheckXIsNull", "check_x_is_null".ToPascalCase());
+		Assert.AreEqual("check_x_is_null", "check_x_is_null".ToPascalCase().ToSnakeCase());
+	}
+
+	[TestMethod]
+	public void APluralAcronymEndingInIOrAFollowedByAWordShouldSplitAsIs()
+	{
+		// The trade-off of the "Is"/"As" rule: a plural acronym ending in "I" or "A" with another word
+		// after it can't be told apart from "Is", so it splits there.
+		Assert.AreEqual("ap_is_list", "APIsList".ToSnakeCase());
+	}
+
 	[TestMethod]
 	[DataRow("HTTPServer", "http_server")]
 	[DataRow("XMLDoc", "xml_doc")]
