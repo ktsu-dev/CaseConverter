@@ -2,6 +2,8 @@
 
 Changes since v1.9.1:
 
+- Split a capitalised word after a capital followed by ß or a ligature [patch] (#141) (matt-edmondson)
+- Look past a decomposed accent when lowercasing a capital after an apostrophe [patch] (#146) (matt-edmondson)
 - Start a new word at "Is" or "As" after an acronym [patch] (#157) (matt-edmondson)
 - Keep a plural's "s" in the word after a digit and an apostrophe [patch] (#155) (matt-edmondson)
 - Keep an all-caps possessive after a lowercased capital run in its word [patch] (#153) (matt-edmondson)
