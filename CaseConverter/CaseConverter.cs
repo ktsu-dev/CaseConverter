@@ -536,9 +536,15 @@ public static partial class CaseConverter
 
 		previousStart = SkipBackOverCombiningMarks(input, previousStart);
 
+		// A lowercase letter with no uppercase form, such as "ß" or "ﬁ", survives uppercasing, so it
+		// takes the case of the nearest letter that has one: "STRAßE" is a single all-caps word, and
+		// the "ß" of "GROßBar" is uppercase, so "Bar" starts a word after it. The combining marks of a
+		// decomposed capital ("E" + U+0301) are skipped first, so "XMLÉtude" splits the same way
+		// whether its "É" is composed or not. The inherited case is looked up only before a capital,
+		// where it can matter, so a long run of such letters is not walked back over at each one.
 		bool previousIsLetter = char.IsLetter(input, previousStart);
-		bool previousIsUpper = char.IsUpper(input, previousStart);
 		bool currentIsUpper = char.IsUpper(input, start);
+		bool previousIsUpper = char.IsUpper(input, previousStart) || (currentIsUpper && InheritsUppercase(input, previousStart));
 
 		// The full title case of "ŉ" is "ʼN", whose U+02BC is a modifier letter. Before a capital it
 		// opens that word, so "DieʼNBoek" breaks before the "ʼ" and keeps "ʼN" together, instead of
@@ -553,11 +559,8 @@ public static partial class CaseConverter
 			return previousIsLetter || char.IsDigit(input, previousStart);
 		}
 
-		// A lowercase letter with no uppercase form, such as "ß" or "ﬁ", survives uppercasing, so it
-		// takes the case of the nearest letter that has one: "STRAßE" is a single all-caps word. The
-		// combining marks of a decomposed capital ("E" + U+0301) are skipped first, so "XMLÉtude"
-		// splits the same way whether its "É" is composed or not. The scan runs only when an acronym
-		// tail is possible: run at every code point, it made a long run of such letters quadratic.
+		// The scan runs only when an acronym tail is possible: run at every code point, it made a long
+		// run of letters with no uppercase form quadratic.
 		int casedNextStart = previousIsUpper && currentIsUpper
 			? SkipLowercaseWithNoUppercase(input, SkipOverCombiningMarks(input, nextStart))
 			: input.Length;
@@ -760,6 +763,38 @@ public static partial class CaseConverter
 		}
 
 		return index;
+	}
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> is a lowercase letter with no
+	/// uppercase form that takes the case of an uppercase letter before it in the same word.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <returns><c>true</c> if the nearest letter before it that has an uppercase form is uppercase; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// The <c>"ß"</c> of <c>"GROß"</c> and the <c>"ﬀ"</c> of <c>"Oﬀ"</c> count as uppercase, so a
+	/// capitalised word after them is the tail of an acronym run and starts a new word. With no such
+	/// letter before it, as in <c>"ﬁDoc"</c>, it is not uppercase.
+	/// </remarks>
+	private static bool InheritsUppercase(string input, int index)
+	{
+		if (!IsLowercaseWithNoUppercase(input, index))
+		{
+			return false;
+		}
+
+		for (int i = index; i > 0;)
+		{
+			i -= i >= 2 && char.IsSurrogatePair(input, i - 2) ? 2 : 1;
+
+			if (!IsLowercaseWithNoUppercase(input, i))
+			{
+				return char.IsUpper(input, i);
+			}
+		}
+
+		return false;
 	}
 
 	/// <summary>
