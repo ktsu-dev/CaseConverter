@@ -2,6 +2,7 @@
 
 Changes since v1.9.1:
 
+- Convert long runs of letters with no uppercase form in linear time (Claude)
 - Keep a possessive after a lowercased all-caps run in the same word [patch] (Claude)
 - Title-case a word that starts with a ligature or "ŉ" [patch] (Claude)
 - Pull letter casing and the lowercase-run check out of ReplaceNonAlphaNumericWithSpace (Claude)
