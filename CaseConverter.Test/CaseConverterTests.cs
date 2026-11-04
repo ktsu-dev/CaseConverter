@@ -217,6 +217,42 @@ public class CaseConverterTests
 		Assert.AreEqual(title, input.ToTitleCase());
 	}
 
+	// "Is" and "As" after an acronym or a single capital have the shape of a plural acronym:
+	// "UserIDIsValid" read as the plural of "IDI" and fused into "user_idis_valid" (#104).
+
+	[TestMethod]
+	[DataRow("UserIDIsValid", "UserIdIsValid", "userIdIsValid", "user_id_is_valid", "user-id-is-valid", "USER_ID_IS_VALID", "User Id Is Valid")]
+	[DataRow("URLIsSet", "UrlIsSet", "urlIsSet", "url_is_set", "url-is-set", "URL_IS_SET", "Url Is Set")]
+	[DataRow("ConvertIDAsString", "ConvertIdAsString", "convertIdAsString", "convert_id_as_string", "convert-id-as-string", "CONVERT_ID_AS_STRING", "Convert Id As String")]
+	[DataRow("getAPIAsJson", "GetApiAsJson", "getApiAsJson", "get_api_as_json", "get-api-as-json", "GET_API_AS_JSON", "Get Api As Json")]
+	[DataRow("DOMIsReady", "DomIsReady", "domIsReady", "dom_is_ready", "dom-is-ready", "DOM_IS_READY", "Dom Is Ready")]
+	[DataRow("PlayerAIsDead", "PlayerAIsDead", "playerAIsDead", "player_a_is_dead", "player-a-is-dead", "PLAYER_A_IS_DEAD", "Player A Is Dead")]
+	public void IsOrAsAfterAnAcronymShouldStartItsOwnWord(string input, string pascal, string camel, string snake, string kebab, string macro, string title)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(kebab, input.ToKebabCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+		Assert.AreEqual(title, input.ToTitleCase());
+	}
+
+	[TestMethod]
+	public void IsAfterASingleCapitalShouldKeepAPascalCaseIdentifierUnchanged()
+	{
+		Assert.AreEqual("IfXIsNull", "IfXIsNull".ToPascalCase());
+		Assert.AreEqual("CheckXIsNull", "check_x_is_null".ToPascalCase());
+		Assert.AreEqual("check_x_is_null", "check_x_is_null".ToPascalCase().ToSnakeCase());
+	}
+
+	[TestMethod]
+	public void APluralAcronymEndingInIOrAFollowedByAWordShouldSplitAsIs()
+	{
+		// The trade-off of the "Is"/"As" rule: a plural acronym ending in "I" or "A" with another word
+		// after it can't be told apart from "Is", so it splits there.
+		Assert.AreEqual("ap_is_list", "APIsList".ToSnakeCase());
+	}
+
 	[TestMethod]
 	[DataRow("HTTPServer", "http_server")]
 	[DataRow("XMLDoc", "xml_doc")]
@@ -504,6 +540,11 @@ public class CaseConverterTests
 	[DataRow("o'NEIL's", "Oneils", "oneils", "oneils", "oneils", "ONEILS")]
 	[DataRow("O'Neil's", "Oneils", "oneils", "oneils", "oneils", "ONEILS")]
 	[DataRow("o\u2019NEIL\u2019s", "Oneils", "oneils", "oneils", "oneils", "ONEILS")]
+	[DataRow("o'NEIL'S", "Oneils", "oneils", "oneils", "oneils", "ONEILS")]
+	[DataRow("o\u2019NEIL\u2019S", "Oneils", "oneils", "oneils", "oneils", "ONEILS")]
+	[DataRow("d'ARTAGNAN'S sword", "DartagnansSword", "dartagnansSword", "dartagnans_sword", "dartagnans-sword", "DARTAGNANS_SWORD")]
+	[DataRow("l'API'S", "Lapis", "lapis", "lapis", "lapis", "LAPIS")]
+	[DataRow("O'NEIL'S", "Oneils", "oneils", "oneils", "oneils", "ONEILS")]
 	[DataRow("McDonald's menu", "McDonaldsMenu", "mcDonaldsMenu", "mc_donalds_menu", "mc-donalds-menu", "MC_DONALDS_MENU")]
 	[DataRow("DON'T stop", "DontStop", "dontStop", "dont_stop", "dont-stop", "DONT_STOP")]
 	[DataRow("API's", "Apis", "apis", "apis", "apis", "APIS")]
@@ -518,6 +559,25 @@ public class CaseConverterTests
 		Assert.AreEqual(snake, input.ToSnakeCase());
 		Assert.AreEqual(kebab, input.ToKebabCase());
 		Assert.AreEqual(macro, input.ToMacroCase());
+	}
+
+	// An apostrophe after a digit split the word, so the plural "1990's" lost its "s" to a word of its own:
+	// snake "the_1990_s", Pascal "The1990S", Title "The 1990'S" (#154).
+	[TestMethod]
+	[DataRow("the 1990's", "The 1990's", "The1990s", "the1990s", "the_1990s", "THE_1990S")]
+	[DataRow("the 90\u2019s", "The 90\u2019s", "The90s", "the90s", "the_90s", "THE_90S")]
+	[DataRow("4's and 5's", "4's And 5's", "4sAnd5s", "4sAnd5s", "4s_and_5s", "4S_AND_5S")]
+	[DataRow("1990's", "1990's", "1990s", "1990s", "1990s", "1990S")]
+	[DataRow("80's music", "80's Music", "80sMusic", "80sMusic", "80s_music", "80S_MUSIC")]
+	public void ApostropheAfterADigitShouldNotSplitTheWord(string input, string title, string pascal, string camel, string snake, string macro)
+	{
+		Assert.AreEqual(title, input.ToTitleCase());
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToPascalCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToTitleCase().ToSnakeCase());
 	}
 
 	// An apostrophe after a decomposed accent ("e" + U+0301) followed the combining mark rather than its
@@ -542,6 +602,75 @@ public class CaseConverterTests
 		Assert.AreEqual(composed.ToTitleCase(), Compose(decomposed.ToTitleCase()));
 	}
 
+	// A capital after an apostrophe looked at the code unit after it to decide whether to lowercase it,
+	// which in NFD text is the capital's own accent, so "L'E\u0301te\u0301" split into "l_été" where NFC
+	// "L'Été" gave "lété". The letter-run checks also ended at the first combining mark.
+	[TestMethod]
+	[DataRow("L'E\u0301te\u0301", "L'\u00c9t\u00e9")]
+	[DataRow("D'A\u0301ngelo", "D'\u00c1ngelo")]
+	[DataRow("L'E\u0301conomie", "L'\u00c9conomie")]
+	[DataRow("s'SE\u0301e\u0301", "s'S\u00c9\u00e9")]
+	public void ACapitalAfterAnApostropheShouldConvertLikeItsComposedSpellingWhenDecomposed(string decomposed, string composed)
+	{
+		// The test host runs with invariant globalization, where string.Normalize is unavailable, so the
+		// composed accents are spelled out and swapped back in to compare.
+		static string Compose(string text) => text
+			.Replace("e\u0301", "\u00e9", StringComparison.Ordinal)
+			.Replace("E\u0301", "\u00c9", StringComparison.Ordinal)
+			.Replace("a\u0301", "\u00e1", StringComparison.Ordinal)
+			.Replace("A\u0301", "\u00c1", StringComparison.Ordinal);
+
+		Assert.AreEqual(composed.ToPascalCase(), Compose(decomposed.ToPascalCase()));
+		Assert.AreEqual(composed.ToCamelCase(), Compose(decomposed.ToCamelCase()));
+		Assert.AreEqual(composed.ToSnakeCase(), Compose(decomposed.ToSnakeCase()));
+		Assert.AreEqual(composed.ToKebabCase(), Compose(decomposed.ToKebabCase()));
+		Assert.AreEqual(composed.ToMacroCase(), Compose(decomposed.ToMacroCase()));
+		Assert.AreEqual(composed.ToTitleCase(), Compose(decomposed.ToTitleCase()));
+	}
+
+	[TestMethod]
+	[DataRow("L'E\u0301te\u0301", "le\u0301te\u0301")]
+	[DataRow("D'A\u0301ngelo", "da\u0301ngelo")]
+	[DataRow("L'E\u0301conomie", "le\u0301conomie")]
+	public void ADecomposedCapitalAfterAnApostropheShouldNotSplitTheWord(string input, string snake)
+	{
+		Assert.AreEqual(snake, input.ToSnakeCase());
+	}
+
+	// A format character inside a word (ZWNJ in Persian spelling, ZWJ in an Indic conjunct, a soft hyphen)
+	// was turned into a word break, so one word became two: "co\u00ADoperate" gave "CoOperate".
+	[TestMethod]
+	[DataRow("\u0645\u06CC\u200C\u062E\u0648\u0627\u0647\u0645", "\u0645\u06CC\u200C\u062E\u0648\u0627\u0647\u0645", "\u0645\u06CC\u200C\u062E\u0648\u0627\u0647\u0645", "\u0645\u06CC\u200C\u062E\u0648\u0627\u0647\u0645")]
+	[DataRow("\u0915\u094D\u200D\u0937", "\u0915\u094D\u200D\u0937", "\u0915\u094D\u200D\u0937", "\u0915\u094D\u200D\u0937")]
+	[DataRow("co\u00ADoperate", "Co\u00ADoperate", "co\u00ADoperate", "CO\u00ADOPERATE")]
+	public void AFormatCharacterInsideAWordShouldNotSplitIt(string word, string title, string lower, string upper)
+	{
+		Assert.AreEqual(title, word.ToTitleCase());
+		Assert.AreEqual(title, word.ToPascalCase());
+		Assert.AreEqual(lower, word.ToCamelCase());
+		Assert.AreEqual(lower, word.ToSnakeCase());
+		Assert.AreEqual(lower, word.ToKebabCase());
+		Assert.AreEqual(upper, word.ToMacroCase());
+	}
+
+	[TestMethod]
+	[DataRow("co\u00ADoperate now", "Co\u00ADoperate Now", "co\u00ADoperate_now")]
+	[DataRow("\u0645\u06CC\u200C\u062E\u0648\u0627\u0647\u0645 test", "\u0645\u06CC\u200C\u062E\u0648\u0627\u0647\u0645 Test", "\u0645\u06CC\u200C\u062E\u0648\u0627\u0647\u0645_test")]
+	public void AFormatCharacterInsideAWordShouldStayInThatWord(string input, string title, string snake)
+	{
+		Assert.AreEqual(title, input.ToTitleCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+	}
+
+	[TestMethod]
+	[DataRow("foo\u200Bbar", "foo_bar")]
+	[DataRow("\u00ADfoo bar\u00AD", "foo_bar")]
+	[DataRow("foo \u200C bar", "foo_bar")]
+	public void AFormatCharacterNotBetweenLettersShouldStillSeparateWords(string input, string snake)
+	{
+		Assert.AreEqual(snake, input.ToSnakeCase());
+	}
+
 	[TestMethod]
 	[DataRow("cafe\u0301's menu", "cafe\u0301s_menu")]
 	[DataRow("cafe\u0301\u2019s menu", "cafe\u0301s_menu")]
@@ -554,7 +683,6 @@ public class CaseConverterTests
 	[DataRow("'quoted' word", "quoted_word")]
 	[DataRow("\u2019quoted\u2019 word", "quoted_word")]
 	[DataRow("rock 'n' roll", "rock_n_roll")]
-	[DataRow("80's music", "80_s_music")]
 	public void ApostropheNotBetweenLettersShouldStillSeparateWords(string input, string expected)
 	{
 		Assert.AreEqual(expected, input.ToSnakeCase());
@@ -604,6 +732,39 @@ public class CaseConverterTests
 	public void ALowercaseWordEndingInSharpSShouldStillSplitBeforeACapital()
 	{
 		Assert.AreEqual("groß_foo", "großFoo".ToSnakeCase());
+	}
+
+	// A capital followed only by such letters, as in "Oﬀ", "Xß" or "GROß", is still an uppercase run,
+	// so a capitalised word after it starts a new word (#140). Otherwise PascalCase merged the next
+	// word into it when converted again: "OﬀSwitch" became "Oﬀswitch".
+
+	[TestMethod]
+	[DataRow("oﬀ switch")]
+	[DataRow("the oﬀ state")]
+	[DataRow("aßBar")]
+	[DataRow("GROßBar")]
+	public void ToPascalCaseShouldBeIdempotentAfterACapitalFollowedByLettersWithNoUppercaseForm(string input)
+	{
+		string once = input.ToPascalCase();
+		Assert.AreEqual(once, once.ToPascalCase());
+		Assert.AreEqual(input.ToCamelCase(), input.ToCamelCase().ToCamelCase());
+	}
+
+	[TestMethod]
+	public void ACapitalisedWordAfterAnUppercaseRunEndingInSharpSOrALigatureShouldSplit()
+	{
+		Assert.AreEqual("OﬀSwitch", "oﬀ switch".ToPascalCase());
+		Assert.AreEqual("oﬀ_switch", "oﬀ switch".ToPascalCase().ToSnakeCase());
+		Assert.AreEqual("the_oﬀ_state", "the oﬀ state".ToPascalCase().ToSnakeCase());
+		Assert.AreEqual("AßBar", "aßBar".ToPascalCase());
+		Assert.AreEqual("groß_bar", "GROßBar".ToSnakeCase());
+		Assert.AreEqual("GroßBar", "GROßBar".ToPascalCase());
+	}
+
+	[TestMethod]
+	public void ALigatureWithNoCasedLetterBeforeItShouldNotSplitFromTheCapitalAfterIt()
+	{
+		Assert.AreEqual("ﬁdoc", "ﬁDoc".ToSnakeCase());
 	}
 
 	[TestMethod]
@@ -954,11 +1115,99 @@ public class CaseConverterTests
 		Assert.AreEqual("the_first", "the \uFB01rst".ToPascalCase().ToSnakeCase());
 	}
 
+	// "և" is the Armenian word for "and". Like the Latin ligatures it has no simple title case, so it
+	// lost its word boundary in PascalCase and camelCase, unlike the two-letter spelling "եւ".
+	[TestMethod]
+	[DataRow("\u0535\u057D \u0587 \u0564\u0578\u0582", "\u0535\u057D \u0535\u0582 \u0534\u0578\u0582")]
+	[DataRow("\uFB13 \u0561", "\u0544\u0576 \u0531")]
+	[DataRow("\u0561 \uFB14", "\u0531 \u0544\u0565")]
+	[DataRow("\u0561 \uFB15", "\u0531 \u0544\u056B")]
+	[DataRow("\u0561 \uFB16", "\u0531 \u054E\u0576")]
+	[DataRow("\u0561 \uFB17", "\u0531 \u0544\u056D")]
+	public void AWordStartingWithAnArmenianLigatureShouldBeTitleCased(string input, string title)
+	{
+		Assert.AreEqual(title, input.ToTitleCase());
+		string pascal = input.ToPascalCase();
+		Assert.AreEqual(pascal, pascal.ToPascalCase());
+		Assert.AreEqual(title.ToSnakeCase().Split('_').Length, pascal.ToSnakeCase().Split('_').Length);
+	}
+
+	[TestMethod]
+	public void ArmenianAndShouldConvertLikeItsTwoLetterSpelling()
+	{
+		const string ligature = "\u0535\u057D \u0587 \u0564\u0578\u0582";
+		const string twoLetters = "\u0535\u057D \u0565\u0582 \u0564\u0578\u0582";
+		Assert.AreEqual(twoLetters.ToPascalCase(), ligature.ToPascalCase());
+		Assert.AreEqual(twoLetters.ToCamelCase(), ligature.ToCamelCase());
+		Assert.AreEqual("\u0565\u057D_\u0565\u0582_\u0564\u0578\u0582", ligature.ToPascalCase().ToSnakeCase());
+	}
+
+	// The scan once stepped by UTF-16 code unit, so after a letter outside the BMP it looked at the low
+	// surrogate, which is not a letter, and took a ligature inside the word for the start of one.
+	[TestMethod]
+	public void ALigatureAfterALetterOutsideTheBmpShouldNotStartAWord()
+	{
+		const string input = "Hello \U0001D400\uFB01le";
+		Assert.AreEqual(input, input.ToTitleCase());
+		Assert.AreEqual("hello_\U0001D400\uFB01le", input.ToPascalCase().ToSnakeCase());
+	}
+
 	[TestMethod]
 	public void AWordStartingWithNApostropheShouldBeTitleCased()
 	{
 		Assert.AreEqual("Die \u02BCN Boek", "die \u0149 boek".ToTitleCase());
-		Assert.AreEqual(3, "die \u0149 boek".ToPascalCase().ToSnakeCase().Split('_').Length);
+		Assert.AreEqual("die_\u02BCn_boek", "die \u0149 boek".ToPascalCase().ToSnakeCase());
+	}
+
+	// The "\u02BC" in "\u02BCN" is a modifier letter, which the splitter took for a caseless letter: it broke
+	// between "\u02BC" and "N", and joined "\u02BC" to the word before it.
+	[TestMethod]
+	[DataRow("die \u0149 boek")]
+	[DataRow("\u0149 boek")]
+	[DataRow("\u0149id")]
+	public void AWordStartingWithNApostropheShouldConvertToItself(string input)
+	{
+		string title = input.ToTitleCase();
+		string pascal = input.ToPascalCase();
+		Assert.AreEqual(title, title.ToTitleCase());
+		Assert.AreEqual(pascal, pascal.ToPascalCase());
+		Assert.HasCount(input.ToSnakeCase().Split('_').Length, pascal.ToSnakeCase().Split('_'));
+	}
+
+	private static readonly Func<string, string>[] Converters =
+	[
+		CaseConverter.ToTitleCase,
+		CaseConverter.ToPascalCase,
+		CaseConverter.ToCamelCase,
+		CaseConverter.ToSnakeCase,
+		CaseConverter.ToKebabCase,
+		CaseConverter.ToMacroCase,
+	];
+
+	[TestMethod]
+	[DataRow("\u00DF", DisplayName = "sharp s")]
+	[DataRow("\u0138", DisplayName = "kra")]
+	[DataRow("\U0001D4EA", DisplayName = "mathematical script a")]
+	public void LongRunOfLowercaseWithNoUppercaseConvertsInLinearTime(string unit)
+	{
+		// Each of these survives ToUpperInvariant unchanged. A word-boundary scan over the whole run at
+		// every code point made 16,000 of them take ~17 s; linear work takes a few milliseconds.
+		string run = string.Concat(Enumerable.Repeat(unit, 16000));
+
+		AssertConvertsQuickly(run);
+		AssertConvertsQuickly(new string('A', 16000) + run + "a");
+	}
+
+	private static void AssertConvertsQuickly(string input)
+	{
+		foreach (Func<string, string> convert in Converters)
+		{
+			System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+			_ = convert(input);
+			stopwatch.Stop();
+
+			Assert.IsLessThan(TimeSpan.FromSeconds(2), stopwatch.Elapsed, $"{convert.Method.Name} took {stopwatch.Elapsed} on {input.Length} chars.");
+		}
 	}
 
 	[TestMethod]
