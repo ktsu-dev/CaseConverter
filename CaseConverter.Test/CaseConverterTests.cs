@@ -1245,4 +1245,20 @@ public class CaseConverterTests
 	[DataRow("A\u01C5", false)]
 	public void IsAllCapsShouldCountATitlecaseDigraphBeforeACapitalAsCaps(string input, bool expected) =>
 		Assert.AreEqual(expected, input.IsAllCaps());
+
+	[TestMethod]
+	[DataRow("DON'Ts", "Donts", "donts", "donts", "donts", "DONTS")]
+	[DataRow("DON\u2019Ts", "Donts", "donts", "donts", "donts", "DONTS")]
+	[DataRow("CAN'Ts", "Cants", "cants", "cants", "cants", "CANTS")]
+	[DataRow("ABC'Ds", "Abcds", "abcds", "abcds", "abcds", "ABCDS")]
+	[DataRow("the DOs and DON'Ts", "TheDosAndDonts", "theDosAndDonts", "the_dos_and_donts", "the-dos-and-donts", "THE_DOS_AND_DONTS")]
+	public void AContractionPluralAfterACapitalRunShouldStayOneWord(string input, string pascal, string camel, string snake, string kebab, string macro)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(kebab, input.ToKebabCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+		Assert.AreEqual(snake, input.ToTitleCase().ToSnakeCase());
+	}
 }
