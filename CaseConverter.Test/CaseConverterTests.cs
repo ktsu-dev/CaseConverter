@@ -580,6 +580,42 @@ public class CaseConverterTests
 		Assert.AreEqual(input.ToSnakeCase(), input.ToTitleCase().ToSnakeCase());
 	}
 
+	// A single capital after a digit starts a word ("4K price" -> "4_k_price"), but before an in-word
+	// apostrophe snake, Pascal, camel and MACRO uppercased the suffix onto it ("4KS"), which read as an
+	// all-caps run that stays in the digit's word, while Title still broke before the capital. Converting
+	// through Title case then changed the words: "4K's price" gave snake "4ks_price" but "4_ks_price" (#161).
+	[TestMethod]
+	[DataRow("4K's price", "4 K's Price", "4KsPrice", "4KsPrice", "4_ks_price", "4_KS_PRICE")]
+	[DataRow("3D's model", "3 D's Model", "3DsModel", "3DsModel", "3_ds_model", "3_DS_MODEL")]
+	[DataRow("B2B's growth", "B 2 B's Growth", "B2BsGrowth", "b2BsGrowth", "b_2_bs_growth", "B_2_BS_GROWTH")]
+	[DataRow("3D\u2019s model", "3 D\u2019s Model", "3DsModel", "3DsModel", "3_ds_model", "3_DS_MODEL")]
+	[DataRow("4K'ers", "4 K'ers", "4Kers", "4Kers", "4_kers", "4_KERS")]
+	public void ASingleCapitalAfterADigitBeforeAnApostropheShouldSplitTheSameEverywhere(string input, string title, string pascal, string camel, string snake, string macro)
+	{
+		Assert.AreEqual(title, input.ToTitleCase());
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToTitleCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToPascalCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToCamelCase().ToSnakeCase());
+	}
+
+	// A run of two or more capitals after a digit stays in the digit's word, apostrophe or not, and a single
+	// capital after a caseless letter splits off the same way as one after a digit.
+	[TestMethod]
+	[DataRow("4KB's size")]
+	[DataRow("名K's list")]
+	[DataRow("the 1990's")]
+	[DataRow("4's and 5's")]
+	public void AnApostropheAfterADigitWordShouldKeepConvertersAgreeing(string input)
+	{
+		Assert.AreEqual(input.ToSnakeCase(), input.ToTitleCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToPascalCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToCamelCase().ToSnakeCase());
+	}
+
 	// An apostrophe after a decomposed accent ("e" + U+0301) followed the combining mark rather than its
 	// base letter, so it split the word: NFD "café's menu" gave "café_s_menu" where NFC gave "cafés_menu".
 	[TestMethod]
