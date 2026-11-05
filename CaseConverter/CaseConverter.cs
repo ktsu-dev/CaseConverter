@@ -312,7 +312,10 @@ public static partial class CaseConverter
 				int previousLetterStart = SkipBackOverCombiningMarks(input, previousStart);
 				// A capital that is already being lowercased (the "ARTAGNAN" of "d'ARTAGNAN's") does not
 				// uppercase the suffix after it, or the suffix would split off as a word of its own.
-				uppercaseSuffix = !lowercaseSuffix && char.IsUpper(input, previousLetterStart) && AreLettersFromIndexLowercase(input, nextStart);
+				// Once a word's suffix is being uppercased, every later lowercase suffix of that word is too, so
+				// "I'd've" reads as the one word "IDVE" rather than "ID" and "ve" (#109).
+				uppercaseSuffix = !lowercaseSuffix && AreLettersFromIndexLowercase(input, nextStart)
+					&& (uppercaseSuffix || char.IsUpper(input, previousLetterStart));
 				// A run that is already being lowercased (the "NEIL" of "o'NEIL'S") counts as lowercase, so an
 				// all-caps suffix after it is lowercased too rather than splitting off as a word of its own.
 				lowercaseSuffix = (lowercaseSuffix && AreLettersFromIndexUppercase(input, nextStart))
