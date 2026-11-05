@@ -1245,4 +1245,19 @@ public class CaseConverterTests
 	[DataRow("A\u01C5", false)]
 	public void IsAllCapsShouldCountATitlecaseDigraphBeforeACapitalAsCaps(string input, bool expected) =>
 		Assert.AreEqual(expected, input.IsAllCaps());
+
+	[TestMethod]
+	[DataRow("a'\u01C5emal", "A\u01C6emal", "a\u01C6emal", "a\u01C6emal", "a\u01C6emal", "A\u01C4EMAL")]
+	[DataRow("a'D\u017Eemal", "Ad\u017Eemal", "ad\u017Eemal", "ad\u017Eemal", "ad\u017Eemal", "AD\u017DEMAL")]
+	[DataRow("l'\u01C8ubljana", "L\u01C9ubljana", "l\u01C9ubljana", "l\u01C9ubljana", "l\u01C9ubljana", "L\u01C7UBLJANA")]
+	[DataRow("l\u2019\u01C8ubljana", "L\u01C9ubljana", "l\u01C9ubljana", "l\u01C9ubljana", "l\u01C9ubljana", "L\u01C7UBLJANA")]
+	public void ATitlecaseDigraphAfterAnApostropheShouldStayInTheWord(string input, string pascal, string camel, string snake, string kebab, string macro)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(kebab, input.ToKebabCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+		Assert.AreEqual(snake, input.ToPascalCase().ToSnakeCase());
+	}
 }
