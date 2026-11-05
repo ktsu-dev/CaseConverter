@@ -21,6 +21,32 @@ public static partial class CaseConverter
 	private static int CodePointLength(string input, int index) => char.IsSurrogatePair(input, index) ? 2 : 1;
 
 	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> is a decimal digit or a letter number,
+	/// such as the Roman numeral <c>"Ⅻ"</c> (U+216B).
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <returns><c>true</c> if the code point is in category Nd or Nl; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// A letter number is neither a letter nor a digit to <see cref="char"/>, so it used to be replaced with
+	/// a space and deleted: <c>"chapter Ⅻ".ToPascalCase()</c> gave <c>"Chapter"</c> and <c>"Ⅻ".ToSnakeCase()</c>
+	/// gave <c>""</c>. It is a numeral, so every converter treats it as one: it is kept, and a word breaks
+	/// before it the same way it breaks before a digit. Its case is still mapped, so snake_case writes
+	/// <c>"ⅻ"</c> and MACRO_CASE <c>"Ⅻ"</c>.
+	/// </remarks>
+	private static bool IsDigitOrLetterNumber(string input, int index) =>
+		char.IsDigit(input, index) || CharUnicodeInfo.GetUnicodeCategory(input, index) == UnicodeCategory.LetterNumber;
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> is a letter, a decimal digit or a letter number.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <returns><c>true</c> if the code point is a letter or <see cref="IsDigitOrLetterNumber"/> holds; otherwise, <c>false</c>.</returns>
+	private static bool IsLetterOrDigitOrLetterNumber(string input, int index) =>
+		char.IsLetter(input, index) || IsDigitOrLetterNumber(input, index);
+
+	/// <summary>
 	/// Determines whether the code point at <paramref name="index"/> is part of the letter before it: a
 	/// combining mark, such as a Devanagari vowel sign or the U+0301 accent of a decomposed <c>"é"</c>, or a
 	/// format character inside a word.
@@ -321,7 +347,7 @@ public static partial class CaseConverter
 			}
 			else
 			{
-				if (char.IsDigit(input, i))
+				if (IsDigitOrLetterNumber(input, i))
 				{
 					builder.Append(input, i, length);
 				}
@@ -462,7 +488,7 @@ public static partial class CaseConverter
 		input[start] is '\'' or '\u2019'
 		&& previousStart >= 0
 		&& nextStart < input.Length
-		&& char.IsLetterOrDigit(input, SkipBackOverCombiningMarks(input, previousStart))
+		&& IsLetterOrDigitOrLetterNumber(input, SkipBackOverCombiningMarks(input, previousStart))
 		&& char.IsLetter(input, nextStart);
 
 	/// <summary>
@@ -556,7 +582,7 @@ public static partial class CaseConverter
 
 		if (IsWordInitialApostrophe(input, start))
 		{
-			return previousIsLetter || char.IsDigit(input, previousStart);
+			return previousIsLetter || IsDigitOrLetterNumber(input, previousStart);
 		}
 
 		// The scan runs only when an acronym tail is possible: run at every code point, it made a long
@@ -584,7 +610,7 @@ public static partial class CaseConverter
 		// letters with no uppercase form, which is quadratic when repeated at every code point of one.
 		bool previousIsCaseless = IsCaselessLetter(input, previousStart);
 		if (currentIsUpper && EndsWordThatIsNotUppercase(input, previousStart)
-			&& ((previousIsLetter && !previousIsCaseless) || ((previousIsCaseless || char.IsDigit(input, previousStart)) && !IsWholeCapitalRun(input, start))))
+			&& ((previousIsLetter && !previousIsCaseless) || ((previousIsCaseless || IsDigitOrLetterNumber(input, previousStart)) && !IsWholeCapitalRun(input, start))))
 		{
 			return true;
 		}
@@ -596,7 +622,7 @@ public static partial class CaseConverter
 			return false;
 		}
 
-		return breakBeforeAnyNonLetter || char.IsDigit(input, start);
+		return breakBeforeAnyNonLetter || IsDigitOrLetterNumber(input, start);
 	}
 
 	/// <summary>
@@ -1090,7 +1116,7 @@ public static partial class CaseConverter
 		{
 			int length = CodePointLength(input, i);
 			string? titlecase = length == 1 ? FullTitlecaseWithNoSimpleTitlecase(input[i]) : null;
-			bool startsWord = previousStart < 0 || !(IsWordCharacter(input, previousStart) || char.IsDigit(input, previousStart));
+			bool startsWord = previousStart < 0 || !(IsWordCharacter(input, previousStart) || IsDigitOrLetterNumber(input, previousStart));
 
 			if (titlecase is not null && startsWord)
 			{
@@ -1167,8 +1193,8 @@ public static partial class CaseConverter
 			string codePoint = input[i..(i + length)];
 #endif
 			bool followsDigit = previousStart >= 0
-				&& (char.IsDigit(input, previousStart)
-					|| (input[previousStart] is '\'' or '\u2019' && beforePreviousStart >= 0 && char.IsDigit(input, beforePreviousStart)));
+				&& (IsDigitOrLetterNumber(input, previousStart)
+					|| (input[previousStart] is '\'' or '\u2019' && beforePreviousStart >= 0 && IsDigitOrLetterNumber(input, beforePreviousStart)));
 			builder.Append(followsDigit && char.IsLetter(input, i) ? ToLowerInvariantFull(codePoint) : codePoint);
 			beforePreviousStart = previousStart;
 			previousStart = i;
@@ -1480,7 +1506,7 @@ public static partial class CaseConverter
 	{
 		int first = 0;
 
-		while (first < input.Length && !char.IsLetterOrDigit(input, first))
+		while (first < input.Length && !IsLetterOrDigitOrLetterNumber(input, first))
 		{
 			first += CodePointLength(input, first);
 		}
