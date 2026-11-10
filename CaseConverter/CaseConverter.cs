@@ -1356,7 +1356,8 @@ public static partial class CaseConverter
 
 	/// <summary>
 	/// Lowercases each one-letter word that directly follows another one-letter word, and each
-	/// two-letter word ending in <c>"s"</c> that directly follows a capital one-letter word.
+	/// two-letter word ending in <c>"s"</c>, or word whose only cased letter is its leading capital,
+	/// that directly follows a capital one-letter word.
 	/// </summary>
 	/// <param name="input">The space-separated output of <see cref="ToTitleCase(string)"/>.</param>
 	/// <returns>A new string with those words lowercased.</returns>
@@ -1392,7 +1393,9 @@ public static partial class CaseConverter
 			bool isIsOrAsBeforeNextWord = (words[i] == "Is" || words[i] == "As")
 				&& i + 1 < words.Length && words[i + 1].Length > 0 && char.IsUpper(words[i + 1], 0);
 
-			if ((isOneLetter && previousIsOneLetter) || (previousIsCapitalOneLetter && IsLetterThenPluralS(words[i]) && !isIsOrAsBeforeNextWord))
+			if ((isOneLetter && previousIsOneLetter)
+				|| (previousIsCapitalOneLetter && IsLetterThenPluralS(words[i]) && !isIsOrAsBeforeNextWord)
+				|| (previousIsCapitalOneLetter && IsCapitalThenUncased(words[i])))
 			{
 				words[i] = ToLowerInvariantFull(words[i]);
 			}
@@ -1401,6 +1404,35 @@ public static partial class CaseConverter
 		}
 
 		return string.Join(" ", words);
+	}
+
+	/// <summary>
+	/// Determines whether <paramref name="word"/> starts with a capital letter and has no other cased
+	/// letter, as in <c>"Y名"</c>: its only cased letter is the first.
+	/// </summary>
+	/// <param name="word">The word to inspect.</param>
+	/// <returns><c>true</c> if the word's only cased letter is a leading capital; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// After a capital one-letter word such a word joins into a run of capitals, because caseless
+	/// letters are ignored when deciding whether a word is all caps: <c>"X Y名"</c> would become
+	/// <c>"XY名"</c>, which reads back as one all-caps word and is normalized to <c>"Xy名"</c>.
+	/// </remarks>
+	private static bool IsCapitalThenUncased(string word)
+	{
+		if (word.Length == 0 || !char.IsUpper(word, 0))
+		{
+			return false;
+		}
+
+		for (int i = CodePointLength(word, 0); i < word.Length; i++)
+		{
+			if (IsCasedLetter(word[i]))
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/// <summary>

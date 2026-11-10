@@ -951,6 +951,24 @@ public class CaseConverterTests
 		Assert.AreEqual(camel, input.ToCamelCase().ToCamelCase());
 	}
 
+	// "Y名" is not a one-letter word, but its only cased letter is its capital, so after a capital
+	// one-letter word it would join into "XY名", which reads back as one all-caps word.
+	[TestMethod]
+	[DataRow("vector x y名", "VectorXy名", "vectorXy名")]
+	[DataRow("x y名前", "Xy名前", "xy名前")]
+	[DataRow("a B名", "Ab名", "ab名")]
+	[DataRow("point x y座標", "PointXy座標", "pointXy座標")]
+	[DataRow("a é用", "Aé用", "aé用")]
+	[DataRow("vector x y", "VectorXy", "vectorXy")]
+	public void AOneLetterWordBeforeACapitalAndCaselessLettersShouldConvertToOutputThatConvertsBackToItself(string input, string pascal, string camel)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(pascal, input.ToPascalCase().ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(camel, input.ToCamelCase().ToCamelCase());
+		Assert.AreEqual(input.ToPascalCase().ToSnakeCase(), input.ToCamelCase().ToSnakeCase());
+	}
+
 	[TestMethod]
 	public void AdjacentOneLetterWordsShouldFoldTogetherThroughPascalCase()
 	{
