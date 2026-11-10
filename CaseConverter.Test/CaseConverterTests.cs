@@ -728,6 +728,54 @@ public class CaseConverterTests
 		Assert.AreEqual("ﬁLE", "ﬁle".ToMacroCase().ToMacroCase());
 	}
 
+	// "ℝ", "ℂ", "ℕ" and the Mathematical Alphanumeric capitals such as "𝐀" are uppercase letters with no
+	// lowercase form. At the end of an acronym they used to be lowercased with it and survive, so the
+	// output had a lowercase letter before a capital and split there when converted again: "APIℝ" gave
+	// "apiℝ", then "api_ℝ". Such a letter is now a word of its own, as it already was after "foo".
+
+	[TestMethod]
+	[DataRow("APIℝ", "api_ℝ")]
+	[DataRow("IDℂ", "id_ℂ")]
+	[DataRow("HTTPℕ", "http_ℕ")]
+	[DataRow("AB𝐀", "ab_𝐀")]
+	[DataRow("fooℝ", "foo_ℝ")]
+	public void AnUppercaseLetterWithNoLowercaseFormShouldBeAWordOfItsOwnAfterAnAcronym(string input, string expected)
+	{
+		Assert.AreEqual(expected, input.ToSnakeCase());
+		Assert.AreEqual(expected, expected.ToSnakeCase());
+	}
+
+	[TestMethod]
+	[DataRow("APIℝ")]
+	[DataRow("URLℝ")]
+	[DataRow("IDℂ")]
+	[DataRow("HTTPℕ")]
+	[DataRow("AB𝐀")]
+	public void ConversionsShouldBeIdempotentForAnAcronymEndingInAnUppercaseLetterWithNoLowercaseForm(string input)
+	{
+		string snake = input.ToSnakeCase();
+		Assert.AreEqual(snake, snake.ToSnakeCase());
+
+		string kebab = input.ToKebabCase();
+		Assert.AreEqual(kebab, kebab.ToKebabCase());
+
+		string title = input.ToTitleCase();
+		Assert.AreEqual(title, title.ToTitleCase());
+
+		string macro = input.ToMacroCase();
+		Assert.AreEqual(macro, macro.ToMacroCase());
+	}
+
+	[TestMethod]
+	public void SnakeKebabAndMacroShouldAgreeWhereAnAcronymEndingInDoubleStruckRSplits()
+	{
+		Assert.AreEqual("api_ℝ", "APIℝ".ToSnakeCase());
+		Assert.AreEqual("api-ℝ", "APIℝ".ToKebabCase());
+		Assert.AreEqual("API_ℝ", "APIℝ".ToMacroCase());
+		Assert.AreEqual("API_ℝ", "APIℝ".ToSnakeCase().ToMacroCase());
+		Assert.AreEqual("Url ℝ", "URLℝ".ToTitleCase());
+	}
+
 	[TestMethod]
 	public void ALowercaseWordEndingInSharpSShouldStillSplitBeforeACapital()
 	{
