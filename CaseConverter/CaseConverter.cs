@@ -382,10 +382,16 @@ public static partial class CaseConverter
 	/// one word <c>"IDVE"</c> rather than <c>"ID"</c> and <c>"ve"</c> (#109). A capital that ends a run of
 	/// capitals keeps a one-capital plural suffix uppercase too (the <c>"Ts"</c> of <c>"DON'Ts"</c>), or the
 	/// O'Neil rule lowers it and the run splits as <c>"DO"</c> + <c>"Nts"</c>.
+	/// <para>
+	/// A single capital after a digit or a caseless letter starts a word of its own (<c>"4K"</c> -> <c>"4 K"</c>),
+	/// so its suffix is not uppercased onto it either: <c>"4KS"</c> would read as an all-caps run that stays in
+	/// the digit's word, while Title case still breaks before the capital (#161).
+	/// </para>
 	/// </remarks>
 	private static bool UppercasesSuffix(string input, int previousLetterStart, int nextStart, bool uppercaseSuffix, bool lowercaseSuffix)
 	{
-		if (lowercaseSuffix)
+		if (lowercaseSuffix
+			|| (char.IsUpper(input, previousLetterStart) && IsSingleCapitalAfterDigitOrCaselessLetter(input, previousLetterStart)))
 		{
 			return false;
 		}
@@ -398,6 +404,29 @@ public static partial class CaseConverter
 		return char.IsUpper(input, previousLetterStart)
 			&& EndsCapitalRun(input, previousLetterStart)
 			&& IsCapitalThenLowercase(input, nextStart);
+	}
+
+	/// <summary>
+	/// Determines whether the capital at <paramref name="index"/> directly follows a digit or a caseless
+	/// letter, so that it is a capital run of one after it.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the capital.</param>
+	/// <returns><c>true</c> if the code point before the capital, past any combining marks, is a digit or a caseless letter; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// <see cref="IsWordBoundary"/> breaks before such a capital unless a second capital follows it, as
+	/// <see cref="IsWholeCapitalRun"/> describes. Uppercasing an apostrophe suffix onto it would supply that
+	/// second capital, so only the converters that drop the apostrophe would keep it in the digit's word.
+	/// </remarks>
+	private static bool IsSingleCapitalAfterDigitOrCaselessLetter(string input, int index)
+	{
+		if (index <= 0)
+		{
+			return false;
+		}
+
+		int previousStart = SkipBackOverCombiningMarks(input, index >= 2 && char.IsSurrogatePair(input, index - 2) ? index - 2 : index - 1);
+		return IsDigitOrLetterNumber(input, previousStart) || IsCaselessLetter(input, previousStart);
 	}
 
 	/// <summary>
