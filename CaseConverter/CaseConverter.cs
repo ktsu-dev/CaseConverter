@@ -336,17 +336,7 @@ public static partial class CaseConverter
 			else if (IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
 				int previousLetterStart = SkipBackOverCombiningMarks(input, previousStart);
-				// A capital that is already being lowercased (the "ARTAGNAN" of "d'ARTAGNAN's") does not
-				// uppercase the suffix after it, or the suffix would split off as a word of its own.
-				// A capital that ends a run of capitals keeps a one-capital plural suffix uppercase too (the "Ts" of
-				// "DON'Ts"), or the O'Neil rule lowers it and the run splits as "DO" + "Nts".
-				// A single capital after a digit or a caseless letter starts a word of its own ("4K" -> "4 K"),
-				// so its suffix is not uppercased onto it either: "4KS" would read as an all-caps run that stays
-				// in the digit's word, while Title case still breaks before the capital (#161).
-				uppercaseSuffix = !lowercaseSuffix && char.IsUpper(input, previousLetterStart)
-					&& (AreLettersFromIndexLowercase(input, nextStart)
-						|| (EndsCapitalRun(input, previousLetterStart) && IsCapitalThenLowercase(input, nextStart)))
-					&& !IsSingleCapitalAfterDigitOrCaselessLetter(input, previousLetterStart);
+				uppercaseSuffix = UppercasesSuffix(input, previousLetterStart, nextStart, uppercaseSuffix, lowercaseSuffix);
 				// A run that is already being lowercased (the "NEIL" of "o'NEIL'S") counts as lowercase, so an
 				// all-caps suffix after it is lowercased too rather than splitting off as a word of its own.
 				lowercaseSuffix = (lowercaseSuffix && AreLettersFromIndexUppercase(input, nextStart))
@@ -376,6 +366,47 @@ public static partial class CaseConverter
 	}
 
 	/// <summary>
+	/// Determines whether the lowercase suffix after an in-word apostrophe is uppercased onto the word
+	/// before it, as <c>"CEO's"</c> becomes <c>"CEOS"</c>.
+	/// </summary>
+	/// <param name="input">The string being converted.</param>
+	/// <param name="previousLetterStart">The index of the letter before the apostrophe.</param>
+	/// <param name="nextStart">The index of the code point after the apostrophe.</param>
+	/// <param name="uppercaseSuffix">Whether an earlier suffix of the same word was uppercased.</param>
+	/// <param name="lowercaseSuffix">Whether the word is already being lowercased.</param>
+	/// <returns><c>true</c> if the suffix is uppercased; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// A capital that is already being lowercased (the <c>"ARTAGNAN"</c> of <c>"d'ARTAGNAN's"</c>) does not
+	/// uppercase the suffix after it, or the suffix would split off as a word of its own. Once a word's suffix
+	/// is being uppercased, every later lowercase suffix of that word is too, so <c>"I'd've"</c> reads as the
+	/// one word <c>"IDVE"</c> rather than <c>"ID"</c> and <c>"ve"</c> (#109). A capital that ends a run of
+	/// capitals keeps a one-capital plural suffix uppercase too (the <c>"Ts"</c> of <c>"DON'Ts"</c>), or the
+	/// O'Neil rule lowers it and the run splits as <c>"DO"</c> + <c>"Nts"</c>.
+	/// <para>
+	/// A single capital after a digit or a caseless letter starts a word of its own (<c>"4K"</c> -> <c>"4 K"</c>),
+	/// so its suffix is not uppercased onto it either: <c>"4KS"</c> would read as an all-caps run that stays in
+	/// the digit's word, while Title case still breaks before the capital (#161).
+	/// </para>
+	/// </remarks>
+	private static bool UppercasesSuffix(string input, int previousLetterStart, int nextStart, bool uppercaseSuffix, bool lowercaseSuffix)
+	{
+		if (lowercaseSuffix
+			|| (char.IsUpper(input, previousLetterStart) && IsSingleCapitalAfterDigitOrCaselessLetter(input, previousLetterStart)))
+		{
+			return false;
+		}
+
+		if (AreLettersFromIndexLowercase(input, nextStart))
+		{
+			return uppercaseSuffix || char.IsUpper(input, previousLetterStart);
+		}
+
+		return char.IsUpper(input, previousLetterStart)
+			&& EndsCapitalRun(input, previousLetterStart)
+			&& IsCapitalThenLowercase(input, nextStart);
+	}
+
+	/// <summary>
 	/// Determines whether the capital at <paramref name="index"/> directly follows a digit or a caseless
 	/// letter, so that it is a capital run of one after it.
 	/// </summary>
@@ -395,7 +426,7 @@ public static partial class CaseConverter
 		}
 
 		int previousStart = SkipBackOverCombiningMarks(input, index >= 2 && char.IsSurrogatePair(input, index - 2) ? index - 2 : index - 1);
-		return char.IsDigit(input, previousStart) || IsCaselessLetter(input, previousStart);
+		return IsDigitOrLetterNumber(input, previousStart) || IsCaselessLetter(input, previousStart);
 	}
 
 	/// <summary>

@@ -585,6 +585,37 @@ public class CaseConverterTests
 		Assert.AreEqual(input.ToPascalCase(), input.ToPascalCase().ToPascalCase());
 	}
 
+	// A contraction with two apostrophes split after its first suffix when a capital came before the first
+	// one: only that suffix was uppercased, so "I'd've" became "IDve" and then "I Dve" (#109).
+	[TestMethod]
+	[DataRow("I'd've", "i'd've")]
+	[DataRow("I\u2019d\u2019ve", "i\u2019d\u2019ve")]
+	[DataRow("Y'all'd", "y'all'd")]
+	[DataRow("Y'all'd've", "y'all'd've")]
+	[DataRow("rock'N'roll", "rock'n'roll")]
+	[DataRow("a'B'c", "a'b'c")]
+	[DataRow("CEO's's", "ceo's's")]
+	public void AContractionWithSeveralApostrophesShouldConvertLikeItsLowercaseForm(string input, string lowercase)
+	{
+		Assert.AreEqual(lowercase.ToPascalCase(), input.ToPascalCase());
+		Assert.AreEqual(lowercase.ToCamelCase(), input.ToCamelCase());
+		Assert.AreEqual(lowercase.ToSnakeCase(), input.ToSnakeCase());
+		Assert.AreEqual(lowercase.ToKebabCase(), input.ToKebabCase());
+		Assert.AreEqual(lowercase.ToMacroCase(), input.ToMacroCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToTitleCase().ToSnakeCase());
+	}
+
+	[TestMethod]
+	[DataRow("I'd've", "Idve", "idve", "idve", "IDVE")]
+	[DataRow("Y'all'd", "Yalld", "yalld", "yalld", "YALLD")]
+	public void AContractionWithSeveralApostrophesShouldStayOneWord(string input, string pascal, string camel, string snake, string macro)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+	}
+
 	// An apostrophe after a digit split the word, so the plural "1990's" lost its "s" to a word of its own:
 	// snake "the_1990_s", Pascal "The1990S", Title "The 1990'S" (#154).
 	[TestMethod]
