@@ -336,13 +336,7 @@ public static partial class CaseConverter
 			else if (IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
 				int previousLetterStart = SkipBackOverCombiningMarks(input, previousStart);
-				// A capital that is already being lowercased (the "ARTAGNAN" of "d'ARTAGNAN's") does not
-				// uppercase the suffix after it, or the suffix would split off as a word of its own.
-				// A capital that ends a run of capitals keeps a one-capital plural suffix uppercase too (the "Ts" of
-				// "DON'Ts"), or the O'Neil rule lowers it and the run splits as "DO" + "Nts".
-				uppercaseSuffix = !lowercaseSuffix && char.IsUpper(input, previousLetterStart)
-					&& (AreLettersFromIndexLowercase(input, nextStart)
-						|| (EndsCapitalRun(input, previousLetterStart) && IsCapitalThenLowercase(input, nextStart)));
+				uppercaseSuffix = UppercasesSuffix(input, previousLetterStart, nextStart, uppercaseSuffix, lowercaseSuffix);
 				// A run that is already being lowercased (the "NEIL" of "o'NEIL'S") counts as lowercase, so an
 				// all-caps suffix after it is lowercased too rather than splitting off as a word of its own.
 				lowercaseSuffix = (lowercaseSuffix && AreLettersFromIndexUppercase(input, nextStart))
@@ -369,6 +363,41 @@ public static partial class CaseConverter
 		}
 
 		return builder.ToString();
+	}
+
+	/// <summary>
+	/// Determines whether the lowercase suffix after an in-word apostrophe is uppercased onto the word
+	/// before it, as <c>"CEO's"</c> becomes <c>"CEOS"</c>.
+	/// </summary>
+	/// <param name="input">The string being converted.</param>
+	/// <param name="previousLetterStart">The index of the letter before the apostrophe.</param>
+	/// <param name="nextStart">The index of the code point after the apostrophe.</param>
+	/// <param name="uppercaseSuffix">Whether an earlier suffix of the same word was uppercased.</param>
+	/// <param name="lowercaseSuffix">Whether the word is already being lowercased.</param>
+	/// <returns><c>true</c> if the suffix is uppercased; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// A capital that is already being lowercased (the <c>"ARTAGNAN"</c> of <c>"d'ARTAGNAN's"</c>) does not
+	/// uppercase the suffix after it, or the suffix would split off as a word of its own. Once a word's suffix
+	/// is being uppercased, every later lowercase suffix of that word is too, so <c>"I'd've"</c> reads as the
+	/// one word <c>"IDVE"</c> rather than <c>"ID"</c> and <c>"ve"</c> (#109). A capital that ends a run of
+	/// capitals keeps a one-capital plural suffix uppercase too (the <c>"Ts"</c> of <c>"DON'Ts"</c>), or the
+	/// O'Neil rule lowers it and the run splits as <c>"DO"</c> + <c>"Nts"</c>.
+	/// </remarks>
+	private static bool UppercasesSuffix(string input, int previousLetterStart, int nextStart, bool uppercaseSuffix, bool lowercaseSuffix)
+	{
+		if (lowercaseSuffix)
+		{
+			return false;
+		}
+
+		if (AreLettersFromIndexLowercase(input, nextStart))
+		{
+			return uppercaseSuffix || char.IsUpper(input, previousLetterStart);
+		}
+
+		return char.IsUpper(input, previousLetterStart)
+			&& EndsCapitalRun(input, previousLetterStart)
+			&& IsCapitalThenLowercase(input, nextStart);
 	}
 
 	/// <summary>
