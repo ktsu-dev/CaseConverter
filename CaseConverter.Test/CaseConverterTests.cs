@@ -598,6 +598,30 @@ public class CaseConverterTests
 	public void FormsNextToAPluralAcronymContractionShouldKeepTheirWords(string input, string snake) =>
 		Assert.AreEqual(snake, input.ToSnakeCase());
 
+	// A letter number (category Nl), such as the Roman numeral "Ⅻ", is neither a letter nor a digit to char,
+	// so every converter but Title replaced it with a space and deleted it: "chapter Ⅻ" gave Pascal
+	// "Chapter" and "Ⅻ" gave snake "" (#105). It is now kept and split like a digit.
+	[TestMethod]
+	[DataRow("chapter Ⅻ", "Chapter Ⅻ", "ChapterⅫ", "chapterⅫ", "chapter_ⅻ", "CHAPTER_Ⅻ")]
+	[DataRow("chapterⅫ", "Chapter Ⅻ", "ChapterⅫ", "chapterⅫ", "chapter_ⅻ", "CHAPTER_Ⅻ")]
+	[DataRow("Ⅻ", "Ⅻ", "Ⅻ", "ⅻ", "ⅻ", "Ⅻ")]
+	[DataRow("ⅫChapter", "Ⅻ Chapter", "ⅫChapter", "ⅻChapter", "ⅻ_chapter", "Ⅻ_CHAPTER")]
+	[DataRow("Ⅻth century", "Ⅻth Century", "ⅫthCentury", "ⅻthCentury", "ⅻth_century", "ⅫTH_CENTURY")]
+	[DataRow("Henry Ⅷ's reign", "Henry Ⅷ's Reign", "HenryⅧsReign", "henryⅧsReign", "henry_ⅷs_reign", "HENRY_ⅧS_REIGN")]
+	[DataRow("level \U00010341 gothic", "Level \U00010341 Gothic", "Level\U00010341Gothic", "level\U00010341Gothic", "level_\U00010341_gothic", "LEVEL_\U00010341_GOTHIC")]
+	public void ALetterNumberShouldBeKeptLikeADigit(string input, string title, string pascal, string camel, string snake, string macro)
+	{
+		Assert.AreEqual(title, input.ToTitleCase());
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToTitleCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToPascalCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToCamelCase().ToSnakeCase());
+		Assert.AreEqual(input.ToPascalCase(), input.ToPascalCase().ToPascalCase());
+	}
+
 	// An apostrophe after a digit split the word, so the plural "1990's" lost its "s" to a word of its own:
 	// snake "the_1990_s", Pascal "The1990S", Title "The 1990'S" (#154).
 	[TestMethod]
@@ -763,6 +787,54 @@ public class CaseConverterTests
 		Assert.AreEqual("maxGröße", "MAX_GRÖßE".ToCamelCase());
 		Assert.AreEqual("maßnahme_limit", "maßnahmeLimit".ToMacroCase().ToSnakeCase());
 		Assert.AreEqual("ﬁLE", "ﬁle".ToMacroCase().ToMacroCase());
+	}
+
+	// "ℝ", "ℂ", "ℕ" and the Mathematical Alphanumeric capitals such as "𝐀" are uppercase letters with no
+	// lowercase form. At the end of an acronym they used to be lowercased with it and survive, so the
+	// output had a lowercase letter before a capital and split there when converted again: "APIℝ" gave
+	// "apiℝ", then "api_ℝ". Such a letter is now a word of its own, as it already was after "foo".
+
+	[TestMethod]
+	[DataRow("APIℝ", "api_ℝ")]
+	[DataRow("IDℂ", "id_ℂ")]
+	[DataRow("HTTPℕ", "http_ℕ")]
+	[DataRow("AB𝐀", "ab_𝐀")]
+	[DataRow("fooℝ", "foo_ℝ")]
+	public void AnUppercaseLetterWithNoLowercaseFormShouldBeAWordOfItsOwnAfterAnAcronym(string input, string expected)
+	{
+		Assert.AreEqual(expected, input.ToSnakeCase());
+		Assert.AreEqual(expected, expected.ToSnakeCase());
+	}
+
+	[TestMethod]
+	[DataRow("APIℝ")]
+	[DataRow("URLℝ")]
+	[DataRow("IDℂ")]
+	[DataRow("HTTPℕ")]
+	[DataRow("AB𝐀")]
+	public void ConversionsShouldBeIdempotentForAnAcronymEndingInAnUppercaseLetterWithNoLowercaseForm(string input)
+	{
+		string snake = input.ToSnakeCase();
+		Assert.AreEqual(snake, snake.ToSnakeCase());
+
+		string kebab = input.ToKebabCase();
+		Assert.AreEqual(kebab, kebab.ToKebabCase());
+
+		string title = input.ToTitleCase();
+		Assert.AreEqual(title, title.ToTitleCase());
+
+		string macro = input.ToMacroCase();
+		Assert.AreEqual(macro, macro.ToMacroCase());
+	}
+
+	[TestMethod]
+	public void SnakeKebabAndMacroShouldAgreeWhereAnAcronymEndingInDoubleStruckRSplits()
+	{
+		Assert.AreEqual("api_ℝ", "APIℝ".ToSnakeCase());
+		Assert.AreEqual("api-ℝ", "APIℝ".ToKebabCase());
+		Assert.AreEqual("API_ℝ", "APIℝ".ToMacroCase());
+		Assert.AreEqual("API_ℝ", "APIℝ".ToSnakeCase().ToMacroCase());
+		Assert.AreEqual("Url ℝ", "URLℝ".ToTitleCase());
 	}
 
 	[TestMethod]
@@ -986,6 +1058,24 @@ public class CaseConverterTests
 		Assert.AreEqual(pascal, input.ToPascalCase().ToPascalCase());
 		Assert.AreEqual(camel, input.ToCamelCase());
 		Assert.AreEqual(camel, input.ToCamelCase().ToCamelCase());
+	}
+
+	// "Y名" is not a one-letter word, but its only cased letter is its capital, so after a capital
+	// one-letter word it would join into "XY名", which reads back as one all-caps word.
+	[TestMethod]
+	[DataRow("vector x y名", "VectorXy名", "vectorXy名")]
+	[DataRow("x y名前", "Xy名前", "xy名前")]
+	[DataRow("a B名", "Ab名", "ab名")]
+	[DataRow("point x y座標", "PointXy座標", "pointXy座標")]
+	[DataRow("a é用", "Aé用", "aé用")]
+	[DataRow("vector x y", "VectorXy", "vectorXy")]
+	public void AOneLetterWordBeforeACapitalAndCaselessLettersShouldConvertToOutputThatConvertsBackToItself(string input, string pascal, string camel)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(pascal, input.ToPascalCase().ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(camel, input.ToCamelCase().ToCamelCase());
+		Assert.AreEqual(input.ToPascalCase().ToSnakeCase(), input.ToCamelCase().ToSnakeCase());
 	}
 
 	[TestMethod]
@@ -1282,4 +1372,20 @@ public class CaseConverterTests
 	[DataRow("A\u01C5", false)]
 	public void IsAllCapsShouldCountATitlecaseDigraphBeforeACapitalAsCaps(string input, bool expected) =>
 		Assert.AreEqual(expected, input.IsAllCaps());
+
+	[TestMethod]
+	[DataRow("DON'Ts", "Donts", "donts", "donts", "donts", "DONTS")]
+	[DataRow("DON\u2019Ts", "Donts", "donts", "donts", "donts", "DONTS")]
+	[DataRow("CAN'Ts", "Cants", "cants", "cants", "cants", "CANTS")]
+	[DataRow("ABC'Ds", "Abcds", "abcds", "abcds", "abcds", "ABCDS")]
+	[DataRow("the DOs and DON'Ts", "TheDosAndDonts", "theDosAndDonts", "the_dos_and_donts", "the-dos-and-donts", "THE_DOS_AND_DONTS")]
+	public void AContractionPluralAfterACapitalRunShouldStayOneWord(string input, string pascal, string camel, string snake, string kebab, string macro)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(kebab, input.ToKebabCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+		Assert.AreEqual(snake, input.ToTitleCase().ToSnakeCase());
+	}
 }
