@@ -1,6 +1,7 @@
-## v1.9.3 (patch)
+## v1.9.4 (patch)
 
-Changes since v1.9.2:
+Changes since v1.9.3:
 
-- Keep uppercasing a contraction's suffixes past its second apostrophe [patch] (#163) (matt-edmondson)
+- Split a single capital after a digit before an apostrophe in every converter [patch] (#162) (matt-edmondson)
+- Keep a titlecase digraph after an apostrophe in its word [patch] (#168) (matt-edmondson)
 
