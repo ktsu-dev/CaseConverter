@@ -585,6 +585,52 @@ public class CaseConverterTests
 		Assert.AreEqual(input.ToPascalCase(), input.ToPascalCase().ToPascalCase());
 	}
 
+	// An other number (category No), such as a subscript, superscript, circled number or vulgar fraction, is
+	// not a digit to char either, so every converter but Title deleted it like a letter number before #105:
+	// "H₂O" gave snake "h_o", and "area_m²" and "area_m" both gave snake "area_m" (#166). It is now kept and
+	// split like a digit.
+	[TestMethod]
+	[DataRow("H₂O", "H ₂ O", "H₂O", "h₂O", "h_₂_o", "H_₂_O")]
+	[DataRow("area_m²", "Area M ²", "AreaM²", "areaM²", "area_m_²", "AREA_M_²")]
+	[DataRow("½ cup", "½ Cup", "½Cup", "½Cup", "½_cup", "½_CUP")]
+	[DataRow("step ①", "Step ①", "Step①", "step①", "step_①", "STEP_①")]
+	[DataRow("CO₂_LEVEL", "Co ₂ Level", "Co₂Level", "co₂Level", "co_₂_level", "CO_₂_LEVEL")]
+	public void AnOtherNumberShouldBeKeptLikeADigit(string input, string title, string pascal, string camel, string snake, string macro)
+	{
+		Assert.AreEqual(title, input.ToTitleCase());
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase().Replace('_', '-'), input.ToKebabCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToPascalCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToCamelCase().ToSnakeCase());
+		Assert.AreEqual(input.ToPascalCase(), input.ToSnakeCase().ToPascalCase());
+	}
+
+	[TestMethod]
+	[DataRow("H₂O", "H2O", '₂', '2')]
+	[DataRow("area_m²", "area_m2", '²', '2')]
+	[DataRow("½ cup", "1 cup", '½', '1')]
+	[DataRow("step ①", "step 1", '①', '1')]
+	[DataRow("CO₂_LEVEL", "CO2_LEVEL", '₂', '2')]
+	public void AnOtherNumberShouldSplitLikeTheDigitItStandsFor(string input, string withDigit, char number, char digit)
+	{
+		Assert.AreEqual(withDigit.ToTitleCase().Replace(digit, number), input.ToTitleCase());
+		Assert.AreEqual(withDigit.ToPascalCase().Replace(digit, number), input.ToPascalCase());
+		Assert.AreEqual(withDigit.ToCamelCase().Replace(digit, number), input.ToCamelCase());
+		Assert.AreEqual(withDigit.ToSnakeCase().Replace(digit, number), input.ToSnakeCase());
+		Assert.AreEqual(withDigit.ToKebabCase().Replace(digit, number), input.ToKebabCase());
+		Assert.AreEqual(withDigit.ToMacroCase().Replace(digit, number), input.ToMacroCase());
+	}
+
+	[TestMethod]
+	public void ANameWithAnOtherNumberShouldNotCollideWithTheNameWithoutIt()
+	{
+		Assert.AreNotEqual("area_m".ToSnakeCase(), "area_m²".ToSnakeCase());
+		Assert.AreNotEqual("H_O".ToPascalCase(), "H₂O".ToPascalCase());
+	}
+
 	// A contraction with two apostrophes split after its first suffix when a capital came before the first
 	// one: only that suffix was uppercased, so "I'd've" became "IDve" and then "I Dve" (#109).
 	[TestMethod]
