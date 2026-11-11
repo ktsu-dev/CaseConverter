@@ -561,6 +561,61 @@ public class CaseConverterTests
 		Assert.AreEqual(macro, input.ToMacroCase());
 	}
 
+	// A letter number (category Nl), such as the Roman numeral "Ⅻ", is neither a letter nor a digit to char,
+	// so every converter but Title replaced it with a space and deleted it: "chapter Ⅻ" gave Pascal
+	// "Chapter" and "Ⅻ" gave snake "" (#105). It is now kept and split like a digit.
+	[TestMethod]
+	[DataRow("chapter Ⅻ", "Chapter Ⅻ", "ChapterⅫ", "chapterⅫ", "chapter_ⅻ", "CHAPTER_Ⅻ")]
+	[DataRow("chapterⅫ", "Chapter Ⅻ", "ChapterⅫ", "chapterⅫ", "chapter_ⅻ", "CHAPTER_Ⅻ")]
+	[DataRow("Ⅻ", "Ⅻ", "Ⅻ", "ⅻ", "ⅻ", "Ⅻ")]
+	[DataRow("ⅫChapter", "Ⅻ Chapter", "ⅫChapter", "ⅻChapter", "ⅻ_chapter", "Ⅻ_CHAPTER")]
+	[DataRow("Ⅻth century", "Ⅻth Century", "ⅫthCentury", "ⅻthCentury", "ⅻth_century", "ⅫTH_CENTURY")]
+	[DataRow("Henry Ⅷ's reign", "Henry Ⅷ's Reign", "HenryⅧsReign", "henryⅧsReign", "henry_ⅷs_reign", "HENRY_ⅧS_REIGN")]
+	[DataRow("level \U00010341 gothic", "Level \U00010341 Gothic", "Level\U00010341Gothic", "level\U00010341Gothic", "level_\U00010341_gothic", "LEVEL_\U00010341_GOTHIC")]
+	public void ALetterNumberShouldBeKeptLikeADigit(string input, string title, string pascal, string camel, string snake, string macro)
+	{
+		Assert.AreEqual(title, input.ToTitleCase());
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToTitleCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToPascalCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToCamelCase().ToSnakeCase());
+		Assert.AreEqual(input.ToPascalCase(), input.ToPascalCase().ToPascalCase());
+	}
+
+	// A contraction with two apostrophes split after its first suffix when a capital came before the first
+	// one: only that suffix was uppercased, so "I'd've" became "IDve" and then "I Dve" (#109).
+	[TestMethod]
+	[DataRow("I'd've", "i'd've")]
+	[DataRow("I\u2019d\u2019ve", "i\u2019d\u2019ve")]
+	[DataRow("Y'all'd", "y'all'd")]
+	[DataRow("Y'all'd've", "y'all'd've")]
+	[DataRow("rock'N'roll", "rock'n'roll")]
+	[DataRow("a'B'c", "a'b'c")]
+	[DataRow("CEO's's", "ceo's's")]
+	public void AContractionWithSeveralApostrophesShouldConvertLikeItsLowercaseForm(string input, string lowercase)
+	{
+		Assert.AreEqual(lowercase.ToPascalCase(), input.ToPascalCase());
+		Assert.AreEqual(lowercase.ToCamelCase(), input.ToCamelCase());
+		Assert.AreEqual(lowercase.ToSnakeCase(), input.ToSnakeCase());
+		Assert.AreEqual(lowercase.ToKebabCase(), input.ToKebabCase());
+		Assert.AreEqual(lowercase.ToMacroCase(), input.ToMacroCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToTitleCase().ToSnakeCase());
+	}
+
+	[TestMethod]
+	[DataRow("I'd've", "Idve", "idve", "idve", "IDVE")]
+	[DataRow("Y'all'd", "Yalld", "yalld", "yalld", "YALLD")]
+	public void AContractionWithSeveralApostrophesShouldStayOneWord(string input, string pascal, string camel, string snake, string macro)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+	}
+
 	// An apostrophe after a digit split the word, so the plural "1990's" lost its "s" to a word of its own:
 	// snake "the_1990_s", Pascal "The1990S", Title "The 1990'S" (#154).
 	[TestMethod]

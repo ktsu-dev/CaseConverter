@@ -2,6 +2,10 @@
 
 Changes since v1.9.1:
 
+- Keep letter numbers such as Roman numerals, and split them like digits [patch] (#164) (matt-edmondson)
+- Keep a contraction's plural after a capital run in one word [patch] (#169) (matt-edmondson)
+- Split an uppercase letter with no lowercase form off the acronym it ends [patch] (#170) (matt-edmondson)
+- Lower a capital whose word has no other cased letter after a one-letter word [patch] (#172) (matt-edmondson)
 - Treat a titlecase digraph as a capital when splitting words [patch] (#158) (matt-edmondson)
 - Split a capitalised word after a capital followed by ß or a ligature [patch] (#141) (matt-edmondson)
 - Look past a decomposed accent when lowercasing a capital after an apostrophe [patch] (#146) (matt-edmondson)
