@@ -561,6 +561,30 @@ public class CaseConverterTests
 		Assert.AreEqual(macro, input.ToMacroCase());
 	}
 
+	// A letter number (category Nl), such as the Roman numeral "Ⅻ", is neither a letter nor a digit to char,
+	// so every converter but Title replaced it with a space and deleted it: "chapter Ⅻ" gave Pascal
+	// "Chapter" and "Ⅻ" gave snake "" (#105). It is now kept and split like a digit.
+	[TestMethod]
+	[DataRow("chapter Ⅻ", "Chapter Ⅻ", "ChapterⅫ", "chapterⅫ", "chapter_ⅻ", "CHAPTER_Ⅻ")]
+	[DataRow("chapterⅫ", "Chapter Ⅻ", "ChapterⅫ", "chapterⅫ", "chapter_ⅻ", "CHAPTER_Ⅻ")]
+	[DataRow("Ⅻ", "Ⅻ", "Ⅻ", "ⅻ", "ⅻ", "Ⅻ")]
+	[DataRow("ⅫChapter", "Ⅻ Chapter", "ⅫChapter", "ⅻChapter", "ⅻ_chapter", "Ⅻ_CHAPTER")]
+	[DataRow("Ⅻth century", "Ⅻth Century", "ⅫthCentury", "ⅻthCentury", "ⅻth_century", "ⅫTH_CENTURY")]
+	[DataRow("Henry Ⅷ's reign", "Henry Ⅷ's Reign", "HenryⅧsReign", "henryⅧsReign", "henry_ⅷs_reign", "HENRY_ⅧS_REIGN")]
+	[DataRow("level \U00010341 gothic", "Level \U00010341 Gothic", "Level\U00010341Gothic", "level\U00010341Gothic", "level_\U00010341_gothic", "LEVEL_\U00010341_GOTHIC")]
+	public void ALetterNumberShouldBeKeptLikeADigit(string input, string title, string pascal, string camel, string snake, string macro)
+	{
+		Assert.AreEqual(title, input.ToTitleCase());
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToTitleCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToPascalCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToCamelCase().ToSnakeCase());
+		Assert.AreEqual(input.ToPascalCase(), input.ToPascalCase().ToPascalCase());
+	}
+
 	// An apostrophe after a digit split the word, so the plural "1990's" lost its "s" to a word of its own:
 	// snake "the_1990_s", Pascal "The1990S", Title "The 1990'S" (#154).
 	[TestMethod]
