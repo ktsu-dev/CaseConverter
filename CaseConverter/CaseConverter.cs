@@ -314,9 +314,7 @@ public static partial class CaseConverter
 				// uppercase the suffix after it, or the suffix would split off as a word of its own.
 				// A capital that ends a run of capitals keeps a one-capital plural suffix uppercase too (the "Ts" of
 				// "DON'Ts"), or the O'Neil rule lowers it and the run splits as "DO" + "Nts".
-				uppercaseSuffix = !lowercaseSuffix && char.IsUpper(input, previousLetterStart)
-					&& (AreLettersFromIndexLowercase(input, nextStart)
-						|| (EndsCapitalRun(input, previousLetterStart) && IsCapitalThenLowercase(input, nextStart)));
+				uppercaseSuffix = !lowercaseSuffix && IsSuffixUppercasedOntoCapital(input, previousLetterStart, nextStart);
 				// A run that is already being lowercased (the "NEIL" of "o'NEIL'S") counts as lowercase, so an
 				// all-caps suffix after it is lowercased too rather than splitting off as a word of its own.
 				lowercaseSuffix = (lowercaseSuffix && AreLettersFromIndexUppercase(input, nextStart))
@@ -358,6 +356,20 @@ public static partial class CaseConverter
 		letter = LowercaseIf(letter, lowercase);
 		return uppercase ? ToUpperInvariantFull(letter) : letter;
 	}
+
+	/// <summary>
+	/// Determines whether the letter before an in-word apostrophe is a capital whose suffix should be
+	/// uppercased onto it: an all-lowercase suffix (the "s" of "API's"), or, after a run of two or more
+	/// capitals, one capital followed only by lowercase letters (the "Ts" of "DON'Ts").
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="previousLetterStart">The index of the letter before the apostrophe.</param>
+	/// <param name="nextStart">The index of the letter after the apostrophe.</param>
+	/// <returns><c>true</c> if the suffix should be uppercased; otherwise, <c>false</c>.</returns>
+	private static bool IsSuffixUppercasedOntoCapital(string input, int previousLetterStart, int nextStart) =>
+		char.IsUpper(input, previousLetterStart)
+		&& (AreLettersFromIndexLowercase(input, nextStart)
+			|| (EndsCapitalRun(input, previousLetterStart) && IsCapitalThenLowercase(input, nextStart)));
 
 	/// <summary>
 	/// Determines whether the capital at <paramref name="index"/> follows another capital, so that it ends a
