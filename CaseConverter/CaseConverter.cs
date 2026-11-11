@@ -312,7 +312,11 @@ public static partial class CaseConverter
 				int previousLetterStart = SkipBackOverCombiningMarks(input, previousStart);
 				// A capital that is already being lowercased (the "ARTAGNAN" of "d'ARTAGNAN's") does not
 				// uppercase the suffix after it, or the suffix would split off as a word of its own.
-				uppercaseSuffix = !lowercaseSuffix && char.IsUpper(input, previousLetterStart) && AreLettersFromIndexLowercase(input, nextStart);
+				// A capital that ends a run of capitals keeps a one-capital plural suffix uppercase too (the "Ts" of
+				// "DON'Ts"), or the O'Neil rule lowers it and the run splits as "DO" + "Nts".
+				uppercaseSuffix = !lowercaseSuffix && char.IsUpper(input, previousLetterStart)
+					&& (AreLettersFromIndexLowercase(input, nextStart)
+						|| (EndsCapitalRun(input, previousLetterStart) && IsCapitalThenLowercase(input, nextStart)));
 				// A run that is already being lowercased (the "NEIL" of "o'NEIL'S") counts as lowercase, so an
 				// all-caps suffix after it is lowercased too rather than splitting off as a word of its own.
 				lowercaseSuffix = (lowercaseSuffix && AreLettersFromIndexUppercase(input, nextStart))
@@ -354,6 +358,35 @@ public static partial class CaseConverter
 		letter = LowercaseIf(letter, lowercase);
 		return uppercase ? ToUpperInvariantFull(letter) : letter;
 	}
+
+	/// <summary>
+	/// Determines whether the capital at <paramref name="index"/> follows another capital, so that it ends a
+	/// run of two or more, as the <c>"N"</c> of <c>"DON"</c> does.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of a capital letter.</param>
+	/// <returns><c>true</c> if the letter before it, past any combining marks, is uppercase; otherwise, <c>false</c>.</returns>
+	private static bool EndsCapitalRun(string input, int index)
+	{
+		if (index == 0)
+		{
+			return false;
+		}
+
+		int previous = SkipBackOverCombiningMarks(input, index - (index >= 2 && char.IsSurrogatePair(input, index - 2) ? 2 : 1));
+		return char.IsUpper(input, previous);
+	}
+
+	/// <summary>
+	/// Determines whether the run of letters starting at <paramref name="start"/> is one capital followed only
+	/// by lowercase letters, as the <c>"Ts"</c> of <c>"DON'Ts"</c> is.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="start">The index of the first letter of the run.</param>
+	/// <returns><c>true</c> if the run is a capital and then lowercase letters only; otherwise, <c>false</c>.</returns>
+	private static bool IsCapitalThenLowercase(string input, int start) =>
+		char.IsUpper(input, start)
+		&& AreLettersFromIndexLowercase(input, SkipOverCombiningMarks(input, start + CodePointLength(input, start)));
 
 	/// <summary>
 	/// Determines whether the letter before an in-word apostrophe is lowercase and every letter in the run
