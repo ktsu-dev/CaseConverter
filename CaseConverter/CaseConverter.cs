@@ -477,7 +477,7 @@ public static partial class CaseConverter
 	/// </remarks>
 	private static bool IsCapitalAfterApostropheInLowercaseContext(string input, int previousStart, int nextStart)
 	{
-		if (!char.IsUpper(input, nextStart))
+		if (!IsUpperOrTitlecase(input, nextStart))
 		{
 			return false;
 		}
