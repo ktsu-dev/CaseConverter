@@ -312,7 +312,11 @@ public static partial class CaseConverter
 				int previousLetterStart = SkipBackOverCombiningMarks(input, previousStart);
 				// A capital that is already being lowercased (the "ARTAGNAN" of "d'ARTAGNAN's") does not
 				// uppercase the suffix after it, or the suffix would split off as a word of its own.
-				uppercaseSuffix = !lowercaseSuffix && char.IsUpper(input, previousLetterStart) && AreLettersFromIndexLowercase(input, nextStart);
+				// A capital that ends a run of capitals keeps a one-capital plural suffix uppercase too (the "Ts" of
+				// "DON'Ts"), or the O'Neil rule lowers it and the run splits as "DO" + "Nts".
+				uppercaseSuffix = !lowercaseSuffix && char.IsUpper(input, previousLetterStart)
+					&& (AreLettersFromIndexLowercase(input, nextStart)
+						|| (EndsCapitalRun(input, previousLetterStart) && IsCapitalThenLowercase(input, nextStart)));
 				// A run that is already being lowercased (the "NEIL" of "o'NEIL'S") counts as lowercase, so an
 				// all-caps suffix after it is lowercased too rather than splitting off as a word of its own.
 				lowercaseSuffix = (lowercaseSuffix && AreLettersFromIndexUppercase(input, nextStart))
@@ -354,6 +358,35 @@ public static partial class CaseConverter
 		letter = LowercaseIf(letter, lowercase);
 		return uppercase ? ToUpperInvariantFull(letter) : letter;
 	}
+
+	/// <summary>
+	/// Determines whether the capital at <paramref name="index"/> follows another capital, so that it ends a
+	/// run of two or more, as the <c>"N"</c> of <c>"DON"</c> does.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of a capital letter.</param>
+	/// <returns><c>true</c> if the letter before it, past any combining marks, is uppercase; otherwise, <c>false</c>.</returns>
+	private static bool EndsCapitalRun(string input, int index)
+	{
+		if (index == 0)
+		{
+			return false;
+		}
+
+		int previous = SkipBackOverCombiningMarks(input, index - (index >= 2 && char.IsSurrogatePair(input, index - 2) ? 2 : 1));
+		return char.IsUpper(input, previous);
+	}
+
+	/// <summary>
+	/// Determines whether the run of letters starting at <paramref name="start"/> is one capital followed only
+	/// by lowercase letters, as the <c>"Ts"</c> of <c>"DON'Ts"</c> is.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="start">The index of the first letter of the run.</param>
+	/// <returns><c>true</c> if the run is a capital and then lowercase letters only; otherwise, <c>false</c>.</returns>
+	private static bool IsCapitalThenLowercase(string input, int start) =>
+		char.IsUpper(input, start)
+		&& AreLettersFromIndexLowercase(input, SkipOverCombiningMarks(input, start + CodePointLength(input, start)));
 
 	/// <summary>
 	/// Determines whether the letter before an in-word apostrophe is lowercase and every letter in the run
@@ -559,17 +592,9 @@ public static partial class CaseConverter
 			return previousIsLetter || char.IsDigit(input, previousStart);
 		}
 
-		// The scan runs only when an acronym tail is possible: run at every code point, it made a long
-		// run of letters with no uppercase form quadratic.
-		int casedNextStart = previousIsUpper && currentIsUpper
-			? SkipLowercaseWithNoUppercase(input, SkipOverCombiningMarks(input, nextStart))
-			: input.Length;
-
-		// The tail of an acronym run that begins a new word: "XMLDoc" breaks before the "D". A lone
-		// plural "s" is not a word, so "APIs" and "getIDs" keep the acronym whole, unless it spells
-		// "Is" or "As" before the next word: "UserIDIsValid" breaks before the "I".
-		if (previousIsUpper && currentIsUpper && casedNextStart < input.Length && char.IsLower(input, casedNextStart)
-			&& (!IsPluralSuffix(input, casedNextStart) || IsIsOrAsBeforeNextWord(input, start, casedNextStart)))
+		// The checks within a run of capitals scan ahead, so they run only when both letters are capitals:
+		// run at every code point, the scan made a long run of letters with no uppercase form quadratic.
+		if (previousIsUpper && currentIsUpper && IsWordBoundaryWithinCapitalRun(input, previousStart, start, nextStart))
 		{
 			return true;
 		}
@@ -597,6 +622,34 @@ public static partial class CaseConverter
 		}
 
 		return breakBeforeAnyNonLetter || char.IsDigit(input, start);
+	}
+
+	/// <summary>
+	/// Determines whether a word boundary falls before the capital at <paramref name="start"/>, which
+	/// follows another capital.
+	/// </summary>
+	/// <param name="input">The string being split.</param>
+	/// <param name="previousStart">The index of the preceding capital, past any combining marks.</param>
+	/// <param name="start">The index of the capital to test.</param>
+	/// <param name="nextStart">The index of the following code point, which may be past the end.</param>
+	/// <returns><c>true</c> if a space belongs before <paramref name="start"/>; otherwise, <c>false</c>.</returns>
+	private static bool IsWordBoundaryWithinCapitalRun(string input, int previousStart, int start, int nextStart)
+	{
+		// An uppercase letter with no lowercase form, such as "ℝ" or "𝐀", is a word of its own after a
+		// capital, as it already is after a lowercase letter ("fooℝ" is "foo ℝ"). Kept in the acronym,
+		// it survived the acronym's lowercasing, so "APIℝ" became "apiℝ" and that split again into
+		// "api ℝ". A run of such letters ("ℝℂ") stays together.
+		if (IsUppercaseWithNoLowercase(input, start))
+		{
+			return !IsUppercaseWithNoLowercase(input, previousStart);
+		}
+
+		// The tail of an acronym run that begins a new word: "XMLDoc" breaks before the "D". A lone
+		// plural "s" is not a word, so "APIs" and "getIDs" keep the acronym whole, unless it spells
+		// "Is" or "As" before the next word: "UserIDIsValid" breaks before the "I".
+		int casedNextStart = SkipLowercaseWithNoUppercase(input, SkipOverCombiningMarks(input, nextStart));
+		return casedNextStart < input.Length && char.IsLower(input, casedNextStart)
+			&& (!IsPluralSuffix(input, casedNextStart) || IsIsOrAsBeforeNextWord(input, start, casedNextStart));
 	}
 
 	/// <summary>
@@ -746,6 +799,34 @@ public static partial class CaseConverter
 		string codePoint = input[index..(index + CodePointLength(input, index))];
 #endif
 		return string.Equals(ToUpperInvariantFull(codePoint), codePoint, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> is an uppercase letter with no
+	/// lowercase form, such as <c>"ℝ"</c> (U+211D) or <c>"𝐀"</c> (U+1D400).
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the first code unit of the code point.</param>
+	/// <returns><c>true</c> if the code point is uppercase and has no lowercase form; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// Such a letter is still present, and still uppercase, in the output of
+	/// <see cref="ToSnakeCase(string)"/>, so it must not be lowercased along with an acronym it ends.
+	/// </remarks>
+	private static bool IsUppercaseWithNoLowercase(string input, int index)
+	{
+		if (!char.IsUpper(input, index))
+		{
+			return false;
+		}
+
+#if NETSTANDARD2_0
+#pragma warning disable IDE0057 // Substring cannot be simplified in netstandard2.0
+		string codePoint = input.Substring(index, CodePointLength(input, index));
+#pragma warning restore IDE0057
+#else
+		string codePoint = input[index..(index + CodePointLength(input, index))];
+#endif
+		return string.Equals(ToLowerInvariantFull(codePoint), codePoint, StringComparison.Ordinal);
 	}
 
 	/// <summary>
@@ -1356,7 +1437,8 @@ public static partial class CaseConverter
 
 	/// <summary>
 	/// Lowercases each one-letter word that directly follows another one-letter word, and each
-	/// two-letter word ending in <c>"s"</c> that directly follows a capital one-letter word.
+	/// two-letter word ending in <c>"s"</c>, or word whose only cased letter is its leading capital,
+	/// that directly follows a capital one-letter word.
 	/// </summary>
 	/// <param name="input">The space-separated output of <see cref="ToTitleCase(string)"/>.</param>
 	/// <returns>A new string with those words lowercased.</returns>
@@ -1392,7 +1474,9 @@ public static partial class CaseConverter
 			bool isIsOrAsBeforeNextWord = (words[i] == "Is" || words[i] == "As")
 				&& i + 1 < words.Length && words[i + 1].Length > 0 && char.IsUpper(words[i + 1], 0);
 
-			if ((isOneLetter && previousIsOneLetter) || (previousIsCapitalOneLetter && IsLetterThenPluralS(words[i]) && !isIsOrAsBeforeNextWord))
+			if ((isOneLetter && previousIsOneLetter)
+				|| (previousIsCapitalOneLetter && IsLetterThenPluralS(words[i]) && !isIsOrAsBeforeNextWord)
+				|| (previousIsCapitalOneLetter && IsCapitalThenUncased(words[i])))
 			{
 				words[i] = ToLowerInvariantFull(words[i]);
 			}
@@ -1401,6 +1485,35 @@ public static partial class CaseConverter
 		}
 
 		return string.Join(" ", words);
+	}
+
+	/// <summary>
+	/// Determines whether <paramref name="word"/> starts with a capital letter and has no other cased
+	/// letter, as in <c>"Y名"</c>: its only cased letter is the first.
+	/// </summary>
+	/// <param name="word">The word to inspect.</param>
+	/// <returns><c>true</c> if the word's only cased letter is a leading capital; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// After a capital one-letter word such a word joins into a run of capitals, because caseless
+	/// letters are ignored when deciding whether a word is all caps: <c>"X Y名"</c> would become
+	/// <c>"XY名"</c>, which reads back as one all-caps word and is normalized to <c>"Xy名"</c>.
+	/// </remarks>
+	private static bool IsCapitalThenUncased(string word)
+	{
+		if (word.Length == 0 || !char.IsUpper(word, 0))
+		{
+			return false;
+		}
+
+		for (int i = CodePointLength(word, 0); i < word.Length; i++)
+		{
+			if (IsCasedLetter(word[i]))
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/// <summary>
