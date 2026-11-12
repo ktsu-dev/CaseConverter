@@ -671,9 +671,11 @@ public static partial class CaseConverter
 			return false;
 		}
 
+		// After a capital, the same "ʼ" is the apostrophe inside an all-caps word, as in the Ukrainian
+		// "МʼЯСО", and the converters never write "ʼN" there: macro case turns "DieʼNBoek" into "DIE_ʼN_BOEK".
 		if (IsWordInitialApostrophe(input, start))
 		{
-			return previousIsLetter || IsDigitOrLetterNumber(input, previousStart);
+			return (previousIsLetter && !IsUpperOrTitlecase(input, previousStart)) || IsDigitOrLetterNumber(input, previousStart);
 		}
 
 		// The checks within a run of capitals scan ahead, so they run only when both letters are capitals:

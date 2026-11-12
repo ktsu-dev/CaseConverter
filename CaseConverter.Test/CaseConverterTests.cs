@@ -1331,6 +1331,21 @@ public class CaseConverterTests
 		Assert.HasCount(input.ToSnakeCase().Split('_').Length, pascal.ToSnakeCase().Split('_'));
 	}
 
+	// U+02BC is also the Ukrainian apostrophe. Inside an all-caps word it is followed by a capital too, but
+	// it does not open a word there: only the "\u02BCN" the converters write after a lowercase letter does.
+	[TestMethod]
+	[DataRow("\u041C\u02BC\u042F\u0421\u041E", "\u043C\u02BC\u044F\u0441\u043E", "\u041C\u02BC\u044F\u0441\u043E")]
+	[DataRow("\u041F\u0406\u0414\u02BC\u0407\u0417\u0414", "\u043F\u0456\u0434\u02BC\u0457\u0437\u0434", "\u041F\u0456\u0434\u02BC\u0457\u0437\u0434")]
+	public void AnAllCapsWordWithAModifierApostropheShouldStayOneWord(string input, string snake, string title)
+	{
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(title, input.ToTitleCase());
+		Assert.AreEqual(title, input.ToPascalCase());
+		Assert.AreEqual(input, input.ToMacroCase());
+		Assert.AreEqual(input, input.ToMacroCase().ToMacroCase());
+		Assert.AreEqual(snake, snake.ToMacroCase().ToSnakeCase());
+	}
+
 	private static readonly Func<string, string>[] Converters =
 	[
 		CaseConverter.ToTitleCase,
