@@ -657,6 +657,25 @@ public class CaseConverterTests
 		Assert.AreEqual(input.ToSnakeCase(), input.ToCamelCase().ToSnakeCase());
 	}
 
+	// The #161 fix covered only a lowercase suffix. In all-caps text the suffix is a capital too, and the
+	// converters that drop the apostrophe still joined it onto the single capital ("4K'S" -> "4KS"), so the
+	// run stayed in the digit's word while Title case broke before the capital (#174).
+	[TestMethod]
+	[DataRow("4K'S price", "4K's price", "4_ks_price")]
+	[DataRow("3D'S MODEL", "3D's model", "3_ds_model")]
+	[DataRow("B2B'S GROWTH", "B2B's growth", "b_2_bs_growth")]
+	[DataRow("3D’S MODEL", "3D’s model", "3_ds_model")]
+	[DataRow("名K'S list", "名K's list", "名_ks_list")]
+	public void AnAllCapsSuffixAfterASingleCapitalAfterADigitShouldSplitLikeALowercaseOne(string input, string lowercaseSuffixForm, string snake)
+	{
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(lowercaseSuffixForm.ToSnakeCase(), input.ToSnakeCase());
+		Assert.AreEqual(lowercaseSuffixForm.ToPascalCase(), input.ToPascalCase());
+		Assert.AreEqual(lowercaseSuffixForm.ToMacroCase(), input.ToMacroCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToTitleCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToPascalCase().ToSnakeCase());
+	}
+
 	// A run of two or more capitals after a digit stays in the digit's word, apostrophe or not, and a single
 	// capital after a caseless letter splits off the same way as one after a digit.
 	[TestMethod]

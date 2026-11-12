@@ -339,8 +339,13 @@ public static partial class CaseConverter
 				uppercaseSuffix = UppercasesSuffix(input, previousLetterStart, nextStart, uppercaseSuffix, lowercaseSuffix);
 				// A run that is already being lowercased (the "NEIL" of "o'NEIL'S") counts as lowercase, so an
 				// all-caps suffix after it is lowercased too rather than splitting off as a word of its own.
+				// So is an all-caps suffix after a single capital that follows a digit or a caseless letter
+				// (the "S" of "4K'S"), which then splits off with that capital as the lowercase "4K's" does (#174).
 				lowercaseSuffix = (lowercaseSuffix && AreLettersFromIndexUppercase(input, nextStart))
-					|| IsCapitalRunAfterLowercaseLetter(input, previousLetterStart, nextStart);
+					|| IsCapitalRunAfterLowercaseLetter(input, previousLetterStart, nextStart)
+					|| (char.IsUpper(input, previousLetterStart)
+						&& IsSingleCapitalAfterDigitOrCaselessLetter(input, previousLetterStart)
+						&& AreLettersFromIndexUppercase(input, nextStart));
 				lowercaseNextLetter = !uppercaseSuffix && IsCapitalAfterApostropheInLowercaseContext(input, previousLetterStart, nextStart);
 			}
 			else
