@@ -1433,4 +1433,27 @@ public class CaseConverterTests
 		Assert.AreEqual(macro, input.ToMacroCase());
 		Assert.AreEqual(snake, input.ToPascalCase().ToSnakeCase());
 	}
+
+	[TestMethod]
+	[DataRow("\u26A0\uFE0F warning", "Warning", "warning", "warning", "warning", "WARNING")]
+	[DataRow("I \u2764\uFE0F NY", "INy", "iNy", "i_ny", "i-ny", "I_NY")]
+	[DataRow("\u2714\uFE0F done", "Done", "done", "done", "done", "DONE")]
+	[DataRow("love\u2764\uFE0Fyou", "LoveYou", "loveYou", "love_you", "love-you", "LOVE_YOU")]
+	[DataRow("\u2764\uFE0E text", "Text", "text", "text", "text", "TEXT")]
+	[DataRow("\u0301accent", "Accent", "accent", "accent", "accent", "ACCENT")]
+	public void AMarkWhoseBaseIsDroppedShouldBeDroppedWithIt(string input, string pascal, string camel, string snake, string kebab, string macro)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(kebab, input.ToKebabCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+	}
+
+	[TestMethod]
+	[DataRow("1\uFE0F\u20E3 step", "1\uFE0F\u20E3_step")]
+	[DataRow("cafe\u0301 menu", "cafe\u0301_menu")]
+	[DataRow("\u0915\u093F\u0924\u093E\u092C", "\u0915\u093F\u0924\u093E\u092C")]
+	public void AMarkAfterAKeptLetterOrDigitShouldStillBeKept(string input, string snake) =>
+		Assert.AreEqual(snake, input.ToSnakeCase());
 }

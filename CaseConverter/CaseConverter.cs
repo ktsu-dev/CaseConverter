@@ -277,7 +277,10 @@ public static partial class CaseConverter
 	/// <para>
 	/// A combining mark is part of the letter it follows, so the vowel signs of scripts such as
 	/// Devanagari and the accents of decomposed (NFD) Latin text are kept. A decimal digit from any
-	/// script, such as Arabic-Indic <c>"١٢٣"</c>, is kept like an ASCII digit.
+	/// script, such as Arabic-Indic <c>"١٢٣"</c>, is kept like an ASCII digit. A mark whose base was
+	/// replaced with a space is dropped with it, so the variation selector of an emoji such as
+	/// <c>"⚠️"</c> does not survive as an invisible word of its own, while the marks of a keycap such as
+	/// <c>"1️⃣"</c> stay with its digit.
 	/// </para>
 	/// <para>
 	/// An apostrophe (<c>'</c> or U+2019) between two letters is part of the word, as in
@@ -311,6 +314,7 @@ public static partial class CaseConverter
 		bool uppercaseSuffix = false;
 		bool lowercaseSuffix = false;
 		bool lowercaseNextLetter = false;
+		bool hasBase = false;
 
 		for (int i = 0; i < input.Length;)
 		{
@@ -328,10 +332,11 @@ public static partial class CaseConverter
 #endif
 				builder.Append(CaseLetter(letter, lowercaseNextLetter || lowercaseSuffix, uppercaseSuffix));
 				lowercaseNextLetter = false;
+				hasBase = true;
 			}
 			else if (IsCombiningMark(input, i))
 			{
-				builder.Append(input, i, length);
+				AppendMarkIfItHasABase(builder, input, i, length, hasBase);
 			}
 			else if (IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
@@ -345,7 +350,8 @@ public static partial class CaseConverter
 			}
 			else
 			{
-				if (IsDigitOrLetterNumber(input, i))
+				hasBase = IsDigitOrLetterNumber(input, i);
+				if (hasBase)
 				{
 					builder.Append(input, i, length);
 				}
@@ -363,6 +369,26 @@ public static partial class CaseConverter
 		}
 
 		return builder.ToString();
+	}
+
+	/// <summary>
+	/// Appends a combining mark, unless the letter or digit it would belong to was replaced with a space.
+	/// </summary>
+	/// <param name="builder">The output being built.</param>
+	/// <param name="input">The string being converted.</param>
+	/// <param name="index">The index of the mark.</param>
+	/// <param name="length">The mark's length in UTF-16 code units.</param>
+	/// <param name="hasBase">Whether the code point the mark follows was kept.</param>
+	/// <remarks>
+	/// Without a base, the variation selector of an emoji such as <c>"⚠️"</c> would survive as an invisible
+	/// word of its own.
+	/// </remarks>
+	private static void AppendMarkIfItHasABase(StringBuilder builder, string input, int index, int length, bool hasBase)
+	{
+		if (hasBase)
+		{
+			builder.Append(input, index, length);
+		}
 	}
 
 	/// <summary>
