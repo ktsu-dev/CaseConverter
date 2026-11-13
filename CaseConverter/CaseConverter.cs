@@ -340,18 +340,8 @@ public static partial class CaseConverter
 			}
 			else if (IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
-				int previousLetterStart = SkipBackOverCombiningMarks(input, previousStart);
-				uppercaseSuffix = UppercasesSuffix(input, previousLetterStart, nextStart, uppercaseSuffix, lowercaseSuffix);
-				// A run that is already being lowercased (the "NEIL" of "o'NEIL'S") counts as lowercase, so an
-				// all-caps suffix after it is lowercased too rather than splitting off as a word of its own.
-				// So is an all-caps suffix after a single capital that follows a digit or a caseless letter
-				// (the "S" of "4K'S"), which then splits off with that capital as the lowercase "4K's" does (#174).
-				lowercaseSuffix = (lowercaseSuffix && AreLettersFromIndexUppercase(input, nextStart))
-					|| IsCapitalRunAfterLowercaseLetter(input, previousLetterStart, nextStart)
-					|| (char.IsUpper(input, previousLetterStart)
-						&& IsSingleCapitalAfterDigitOrCaselessLetter(input, previousLetterStart)
-						&& AreLettersFromIndexUppercase(input, nextStart));
-				lowercaseNextLetter = !uppercaseSuffix && IsCapitalAfterApostropheInLowercaseContext(input, previousLetterStart, nextStart);
+				(uppercaseSuffix, lowercaseSuffix, lowercaseNextLetter) =
+					CaseSuffixAfterApostrophe(input, builder, previousStart, nextStart, uppercaseSuffix, lowercaseSuffix);
 			}
 			else
 			{
@@ -374,6 +364,84 @@ public static partial class CaseConverter
 		}
 
 		return builder.ToString();
+	}
+
+	/// <summary>
+	/// Decides how the letters after an in-word apostrophe are cased, so that dropping the apostrophe does
+	/// not split the word, and returns the new state for <see cref="ReplaceNonAlphaNumericWithSpace"/>.
+	/// </summary>
+	/// <param name="input">The string being processed.</param>
+	/// <param name="builder">The output so far, ending with the letter before the apostrophe.</param>
+	/// <param name="previousStart">The index of the code point before the apostrophe.</param>
+	/// <param name="nextStart">The index of the code point after the apostrophe.</param>
+	/// <param name="uppercaseSuffix">Whether the letters before the apostrophe were being uppercased.</param>
+	/// <param name="lowercaseSuffix">Whether the letters before the apostrophe were being lowercased.</param>
+	/// <returns>Whether to uppercase the suffix, lowercase it, and lowercase just its first letter.</returns>
+	private static (bool UppercaseSuffix, bool LowercaseSuffix, bool LowercaseNextLetter) CaseSuffixAfterApostrophe(
+		string input, StringBuilder builder, int previousStart, int nextStart, bool uppercaseSuffix, bool lowercaseSuffix)
+	{
+		// "CEOs've": with the apostrophe gone, "CEOsve" would split before the "O", because an "s" with
+		// more lowercase after it is no plural, and "CEOsVE" the same way. Uppercasing the "s" and the
+		// contraction joins them to the acronym, as "CEO's" becomes "CEOS".
+		if (!uppercaseSuffix && !lowercaseSuffix && IsPluralAcronymEndingAt(input, previousStart)
+			&& (AreLettersFromIndexLowercase(input, nextStart) || AreLettersFromIndexUppercase(input, nextStart)))
+		{
+			builder[^1] = 'S';
+			return (true, false, false);
+		}
+
+		int previousLetterStart = SkipBackOverCombiningMarks(input, previousStart);
+		bool uppercase = UppercasesSuffix(input, previousLetterStart, nextStart, uppercaseSuffix, lowercaseSuffix);
+		// A run that is already being lowercased (the "NEIL" of "o'NEIL'S") counts as lowercase, so an
+		// all-caps suffix after it is lowercased too rather than splitting off as a word of its own.
+		// So is an all-caps suffix after a single capital that follows a digit or a caseless letter
+		// (the "S" of "4K'S"), which then splits off with that capital as the lowercase "4K's" does (#174).
+		bool lowercase = (lowercaseSuffix && AreLettersFromIndexUppercase(input, nextStart))
+			|| IsCapitalRunAfterLowercaseLetter(input, previousLetterStart, nextStart)
+			|| (char.IsUpper(input, previousLetterStart)
+				&& IsSingleCapitalAfterDigitOrCaselessLetter(input, previousLetterStart)
+				&& AreLettersFromIndexUppercase(input, nextStart));
+		bool lowercaseNextLetter = !uppercase && IsCapitalAfterApostropheInLowercaseContext(input, previousLetterStart, nextStart);
+		return (uppercase, lowercase, lowercaseNextLetter);
+	}
+
+	/// <summary>
+	/// Determines whether the code point at <paramref name="index"/> is the plural <c>"s"</c> of an acronym:
+	/// a lowercase <c>"s"</c> straight after at least two capitals, as in <c>"CEOs"</c> or <c>"DJs"</c>.
+	/// </summary>
+	/// <param name="input">The string to inspect.</param>
+	/// <param name="index">The index of the code point to test.</param>
+	/// <returns><c>true</c> if the code point is <c>"s"</c> after a run of two or more capitals; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// One capital is not enough, since <c>"Ms"</c> or <c>"Its"</c> never split: only an acronym run has a
+	/// tail that <see cref="SplitOnCaseChange(string)"/> can break before.
+	/// </remarks>
+	private static bool IsPluralAcronymEndingAt(string input, int index)
+	{
+		if (input[index] != 's')
+		{
+			return false;
+		}
+
+		int capitals = 0;
+		for (int i = index; i > 0 && capitals < 2;)
+		{
+			int previous = i - 1;
+			if (previous > 0 && char.IsLowSurrogate(input[previous]) && char.IsHighSurrogate(input[previous - 1]))
+			{
+				previous--;
+			}
+
+			if (!char.IsUpper(input, previous))
+			{
+				break;
+			}
+
+			capitals++;
+			i = previous;
+		}
+
+		return capitals >= 2;
 	}
 
 	/// <summary>
