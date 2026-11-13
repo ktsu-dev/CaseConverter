@@ -336,8 +336,7 @@ public static partial class CaseConverter
 			}
 			else if (IsCombiningMark(input, i))
 			{
-				// A mark whose base was replaced with a space goes with it, so nothing is appended.
-				builder.Append(input, i, hasBase ? length : 0);
+				AppendMarkIfItHasABase(builder, input, i, length, hasBase);
 			}
 			else if (IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
@@ -370,6 +369,26 @@ public static partial class CaseConverter
 		}
 
 		return builder.ToString();
+	}
+
+	/// <summary>
+	/// Appends a combining mark, unless the letter or digit it would belong to was replaced with a space.
+	/// </summary>
+	/// <param name="builder">The output being built.</param>
+	/// <param name="input">The string being converted.</param>
+	/// <param name="index">The index of the mark.</param>
+	/// <param name="length">The mark's length in UTF-16 code units.</param>
+	/// <param name="hasBase">Whether the code point the mark follows was kept.</param>
+	/// <remarks>
+	/// Without a base, the variation selector of an emoji such as <c>"⚠️"</c> would survive as an invisible
+	/// word of its own.
+	/// </remarks>
+	private static void AppendMarkIfItHasABase(StringBuilder builder, string input, int index, int length, bool hasBase)
+	{
+		if (hasBase)
+		{
+			builder.Append(input, index, length);
+		}
 	}
 
 	/// <summary>
