@@ -1,7 +1,8 @@
-## v1.9.5-pre.1 (prerelease)
+## v1.9.5 (patch)
 
 Changes since v1.9.4:
 
-- Bump MSTest.Sdk from 4.5.2 to 4.5.3 (dependabot[bot])
-- Bump the ktsu group with 9 updates (dependabot[bot])
+- Keep an all-caps word with a modifier apostrophe whole [patch] (#178) (matt-edmondson)
+- Split an all-caps suffix after a single capital after a digit like a lowercase one [patch] (#179) (matt-edmondson)
+- Drop a combining mark whose base was replaced with a space [patch] (#181) (matt-edmondson)
 
