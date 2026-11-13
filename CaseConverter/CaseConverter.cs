@@ -336,10 +336,8 @@ public static partial class CaseConverter
 			}
 			else if (IsCombiningMark(input, i))
 			{
-				if (hasBase)
-				{
-					builder.Append(input, i, length);
-				}
+				// A mark whose base was replaced with a space goes with it, so nothing is appended.
+				builder.Append(input, i, hasBase ? length : 0);
 			}
 			else if (IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
