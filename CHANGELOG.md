@@ -1,3 +1,25 @@
+## v1.9.5 (patch)
+
+Changes since v1.9.4:
+
+- Keep an all-caps word with a modifier apostrophe whole [patch] (#178) (matt-edmondson)
+- Split an all-caps suffix after a single capital after a digit like a lowercase one [patch] (#179) (matt-edmondson)
+- Drop a combining mark whose base was replaced with a space [patch] (#181) (matt-edmondson)
+
+## v1.9.5-pre.1 (prerelease)
+
+Changes since v1.9.4:
+
+- Bump MSTest.Sdk from 4.5.2 to 4.5.3 (dependabot[bot])
+- Bump the ktsu group with 9 updates (dependabot[bot])
+
+## v1.9.4 (patch)
+
+Changes since v1.9.3:
+
+- Split a single capital after a digit before an apostrophe in every converter [patch] (#162) (matt-edmondson)
+- Keep a titlecase digraph after an apostrophe in its word [patch] (#168) (matt-edmondson)
+
 ## v1.9.3 (patch)
 
 Changes since v1.9.2:
