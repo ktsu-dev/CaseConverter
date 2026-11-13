@@ -703,6 +703,25 @@ public class CaseConverterTests
 		Assert.AreEqual(input.ToSnakeCase(), input.ToCamelCase().ToSnakeCase());
 	}
 
+	// The #161 fix covered only a lowercase suffix. In all-caps text the suffix is a capital too, and the
+	// converters that drop the apostrophe still joined it onto the single capital ("4K'S" -> "4KS"), so the
+	// run stayed in the digit's word while Title case broke before the capital (#174).
+	[TestMethod]
+	[DataRow("4K'S price", "4K's price", "4_ks_price")]
+	[DataRow("3D'S MODEL", "3D's model", "3_ds_model")]
+	[DataRow("B2B'S GROWTH", "B2B's growth", "b_2_bs_growth")]
+	[DataRow("3D’S MODEL", "3D’s model", "3_ds_model")]
+	[DataRow("名K'S list", "名K's list", "名_ks_list")]
+	public void AnAllCapsSuffixAfterASingleCapitalAfterADigitShouldSplitLikeALowercaseOne(string input, string lowercaseSuffixForm, string snake)
+	{
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(lowercaseSuffixForm.ToSnakeCase(), input.ToSnakeCase());
+		Assert.AreEqual(lowercaseSuffixForm.ToPascalCase(), input.ToPascalCase());
+		Assert.AreEqual(lowercaseSuffixForm.ToMacroCase(), input.ToMacroCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToTitleCase().ToSnakeCase());
+		Assert.AreEqual(input.ToSnakeCase(), input.ToPascalCase().ToSnakeCase());
+	}
+
 	// A run of two or more capitals after a digit stays in the digit's word, apostrophe or not, and a single
 	// capital after a caseless letter splits off the same way as one after a digit.
 	[TestMethod]
@@ -1377,6 +1396,21 @@ public class CaseConverterTests
 		Assert.HasCount(input.ToSnakeCase().Split('_').Length, pascal.ToSnakeCase().Split('_'));
 	}
 
+	// U+02BC is also the Ukrainian apostrophe. Inside an all-caps word it is followed by a capital too, but
+	// it does not open a word there: only the "\u02BCN" the converters write after a lowercase letter does.
+	[TestMethod]
+	[DataRow("\u041C\u02BC\u042F\u0421\u041E", "\u043C\u02BC\u044F\u0441\u043E", "\u041C\u02BC\u044F\u0441\u043E")]
+	[DataRow("\u041F\u0406\u0414\u02BC\u0407\u0417\u0414", "\u043F\u0456\u0434\u02BC\u0457\u0437\u0434", "\u041F\u0456\u0434\u02BC\u0457\u0437\u0434")]
+	public void AnAllCapsWordWithAModifierApostropheShouldStayOneWord(string input, string snake, string title)
+	{
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(title, input.ToTitleCase());
+		Assert.AreEqual(title, input.ToPascalCase());
+		Assert.AreEqual(input, input.ToMacroCase());
+		Assert.AreEqual(input, input.ToMacroCase().ToMacroCase());
+		Assert.AreEqual(snake, snake.ToMacroCase().ToSnakeCase());
+	}
+
 	private static readonly Func<string, string>[] Converters =
 	[
 		CaseConverter.ToTitleCase,
@@ -1479,4 +1513,27 @@ public class CaseConverterTests
 		Assert.AreEqual(macro, input.ToMacroCase());
 		Assert.AreEqual(snake, input.ToPascalCase().ToSnakeCase());
 	}
+
+	[TestMethod]
+	[DataRow("\u26A0\uFE0F warning", "Warning", "warning", "warning", "warning", "WARNING")]
+	[DataRow("I \u2764\uFE0F NY", "INy", "iNy", "i_ny", "i-ny", "I_NY")]
+	[DataRow("\u2714\uFE0F done", "Done", "done", "done", "done", "DONE")]
+	[DataRow("love\u2764\uFE0Fyou", "LoveYou", "loveYou", "love_you", "love-you", "LOVE_YOU")]
+	[DataRow("\u2764\uFE0E text", "Text", "text", "text", "text", "TEXT")]
+	[DataRow("\u0301accent", "Accent", "accent", "accent", "accent", "ACCENT")]
+	public void AMarkWhoseBaseIsDroppedShouldBeDroppedWithIt(string input, string pascal, string camel, string snake, string kebab, string macro)
+	{
+		Assert.AreEqual(pascal, input.ToPascalCase());
+		Assert.AreEqual(camel, input.ToCamelCase());
+		Assert.AreEqual(snake, input.ToSnakeCase());
+		Assert.AreEqual(kebab, input.ToKebabCase());
+		Assert.AreEqual(macro, input.ToMacroCase());
+	}
+
+	[TestMethod]
+	[DataRow("1\uFE0F\u20E3 step", "1\uFE0F\u20E3_step")]
+	[DataRow("cafe\u0301 menu", "cafe\u0301_menu")]
+	[DataRow("\u0915\u093F\u0924\u093E\u092C", "\u0915\u093F\u0924\u093E\u092C")]
+	public void AMarkAfterAKeptLetterOrDigitShouldStillBeKept(string input, string snake) =>
+		Assert.AreEqual(snake, input.ToSnakeCase());
 }

@@ -279,7 +279,10 @@ public static partial class CaseConverter
 	/// <para>
 	/// A combining mark is part of the letter it follows, so the vowel signs of scripts such as
 	/// Devanagari and the accents of decomposed (NFD) Latin text are kept. A decimal digit from any
-	/// script, such as Arabic-Indic <c>"١٢٣"</c>, is kept like an ASCII digit.
+	/// script, such as Arabic-Indic <c>"١٢٣"</c>, is kept like an ASCII digit. A mark whose base was
+	/// replaced with a space is dropped with it, so the variation selector of an emoji such as
+	/// <c>"⚠️"</c> does not survive as an invisible word of its own, while the marks of a keycap such as
+	/// <c>"1️⃣"</c> stay with its digit.
 	/// </para>
 	/// <para>
 	/// An apostrophe (<c>'</c> or U+2019) between two letters is part of the word, as in
@@ -313,6 +316,7 @@ public static partial class CaseConverter
 		bool uppercaseSuffix = false;
 		bool lowercaseSuffix = false;
 		bool lowercaseNextLetter = false;
+		bool hasBase = false;
 
 		for (int i = 0; i < input.Length;)
 		{
@@ -330,10 +334,11 @@ public static partial class CaseConverter
 #endif
 				builder.Append(CaseLetter(letter, lowercaseNextLetter || lowercaseSuffix, uppercaseSuffix));
 				lowercaseNextLetter = false;
+				hasBase = true;
 			}
 			else if (IsCombiningMark(input, i))
 			{
-				builder.Append(input, i, length);
+				AppendMarkIfItHasABase(builder, input, i, length, hasBase);
 			}
 			else if (IsApostropheWithinWord(input, previousStart, i, nextStart))
 			{
@@ -341,13 +346,19 @@ public static partial class CaseConverter
 				uppercaseSuffix = UppercasesSuffix(input, previousLetterStart, nextStart, uppercaseSuffix, lowercaseSuffix);
 				// A run that is already being lowercased (the "NEIL" of "o'NEIL'S") counts as lowercase, so an
 				// all-caps suffix after it is lowercased too rather than splitting off as a word of its own.
+				// So is an all-caps suffix after a single capital that follows a digit or a caseless letter
+				// (the "S" of "4K'S"), which then splits off with that capital as the lowercase "4K's" does (#174).
 				lowercaseSuffix = (lowercaseSuffix && AreLettersFromIndexUppercase(input, nextStart))
-					|| IsCapitalRunAfterLowercaseLetter(input, previousLetterStart, nextStart);
+					|| IsCapitalRunAfterLowercaseLetter(input, previousLetterStart, nextStart)
+					|| (char.IsUpper(input, previousLetterStart)
+						&& IsSingleCapitalAfterDigitOrCaselessLetter(input, previousLetterStart)
+						&& AreLettersFromIndexUppercase(input, nextStart));
 				lowercaseNextLetter = !uppercaseSuffix && IsCapitalAfterApostropheInLowercaseContext(input, previousLetterStart, nextStart);
 			}
 			else
 			{
-				if (IsNumberCharacter(input, i))
+				hasBase = IsNumberCharacter(input, i);
+				if (hasBase)
 				{
 					builder.Append(input, i, length);
 				}
@@ -365,6 +376,26 @@ public static partial class CaseConverter
 		}
 
 		return builder.ToString();
+	}
+
+	/// <summary>
+	/// Appends a combining mark, unless the letter or digit it would belong to was replaced with a space.
+	/// </summary>
+	/// <param name="builder">The output being built.</param>
+	/// <param name="input">The string being converted.</param>
+	/// <param name="index">The index of the mark.</param>
+	/// <param name="length">The mark's length in UTF-16 code units.</param>
+	/// <param name="hasBase">Whether the code point the mark follows was kept.</param>
+	/// <remarks>
+	/// Without a base, the variation selector of an emoji such as <c>"⚠️"</c> would survive as an invisible
+	/// word of its own.
+	/// </remarks>
+	private static void AppendMarkIfItHasABase(StringBuilder builder, string input, int index, int length, bool hasBase)
+	{
+		if (hasBase)
+		{
+			builder.Append(input, index, length);
+		}
 	}
 
 	/// <summary>
@@ -673,9 +704,11 @@ public static partial class CaseConverter
 			return false;
 		}
 
+		// After a capital, the same "ʼ" is the apostrophe inside an all-caps word, as in the Ukrainian
+		// "МʼЯСО", and the converters never write "ʼN" there: macro case turns "DieʼNBoek" into "DIE_ʼN_BOEK".
 		if (IsWordInitialApostrophe(input, start))
 		{
-			return previousIsLetter || IsNumberCharacter(input, previousStart);
+			return (previousIsLetter && !IsUpperOrTitlecase(input, previousStart)) || IsNumberCharacter(input, previousStart);
 		}
 
 		// The checks within a run of capitals scan ahead, so they run only when both letters are capitals:

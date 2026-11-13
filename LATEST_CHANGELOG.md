@@ -1,7 +1,7 @@
-## v1.9.4 (patch)
+## v1.9.5-pre.1 (prerelease)
 
-Changes since v1.9.3:
+Changes since v1.9.4:
 
-- Split a single capital after a digit before an apostrophe in every converter [patch] (#162) (matt-edmondson)
-- Keep a titlecase digraph after an apostrophe in its word [patch] (#168) (matt-edmondson)
+- Bump MSTest.Sdk from 4.5.2 to 4.5.3 (dependabot[bot])
+- Bump the ktsu group with 9 updates (dependabot[bot])
 
